@@ -3,15 +3,18 @@ Simply include JQuery and databind.js, and you're ready to use databinding on yo
 ```html
 <!-- for testing -->
 <script src="http://rawgit.com/ken107/databind-js/master/databind.js"></script>
+
+<!-- for production -->
+<script src="http://cdn.rawgit.com/ken107/databind-js/master/databind.js"></script>
 ```
 
 Declare your data sources, for example:
 ```javascript
-window.tabs = [
+tabs = [
 	{title: "Yahoo", url: "http://yahoo.com"},
 	{title: "Google", url: "http://google.com"}
 ];
-window.selectedTab = 0;
+selectedTab = 0;
 ```
 
 ### Text binding
@@ -55,7 +58,7 @@ http://jsfiddle.net/ebo7jzts/2/
 </div>
 ```
 
-The bind-statement directive is the Swiss army knife of data binding.  You use it to alter the appearance and behavior of the bound element, depending on the value of some data source.
+The bind-statement directive is the Swiss army knife of data binding.  You use it to alter the appearance and behaviour of the bound element, depending on the value of some data source.
 
 The special variable `thisElem` always point to the current element.
 

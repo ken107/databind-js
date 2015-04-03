@@ -445,9 +445,10 @@
 			if (isNaN(newCount) || newCount < 0) newCount = 0;
 			if (newCount > count) {
 				var newElems = document.createDocumentFragment();
+				var toBind = [];
 				for (var i=count; i<newCount; i++) {
 					if (cache.lastChild) {
-						getBindingStore(cache.lastChild).rebind();
+						toBind.push({elem: cache.lastChild});
 						newElems.appendChild(cache.lastChild);
 					}
 					else {
@@ -455,10 +456,14 @@
 						newElems.appendChild(newElem);
 						var newData = extend(data);
 						setProp(newData, name, new Property(i));
-						dataBind(newElem, newData, context, getBindingStore(newElem, true), debugInfo);
+						toBind.push({elem: newElem, data: newData});
 					}
 				}
 				parent.insertBefore(newElems, tail);
+				for (var i=0; i<toBind.length; i++) {
+					if (!toBind[i].data) getBindingStore(toBind[i].elem).rebind();
+					else dataBind(toBind[i].elem, toBind[i].data, context, getBindingStore(toBind[i].elem, true), debugInfo);
+				}
 			}
 			else if (newCount < count) {
 				var elem = tail ? tail.previousSibling : parent.lastChild;
