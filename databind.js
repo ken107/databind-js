@@ -410,34 +410,22 @@
 		};
 	}
 	
-	var getBindingStore = (function(cache, counter) {
-		return function(elem, create) {
-			var id = elem.getAttribute("data-binder-bindings");
-			if (!id && create) {
-				elem.setAttribute("data-binder-bindings", id = ++counter);
-				cache[id] = {
-					bindings: [],
-					unbind: function() {
-						for (var i=0; i<this.bindings.length; i++) this.bindings[i].unbind();
-					},
-					rebind: function() {
-						for (var i=0; i<this.bindings.length; i++) this.bindings[i].bind();
-					},
-					remove: function() {
-						delete cache[id];
-						elem.removeAttribute("data-binder-bindings");
-					}
-				};
-			}
-			return id ? cache[id] : null;
+	function BindingStore() {
+		this.bindings = [];
+		this.unbind = function() {
+			for (var i=0; i<this.bindings.length; i++) this.bindings[i].unbind();
 		};
-	})({}, 0);
+		this.rebind = function() {
+			for (var i=0; i<this.bindings.length; i++) this.bindings[i].bind();
+		};
+	}
 	
 	function Repeater(name, node, data, context, debugInfo) {
 		var parent = node.parentNode;
 		var tail = node.nextSibling;
 		parent.removeChild(node);
 		var count = 0;
+		var bindingStores = [];
 		var cache = document.createDocumentFragment();
 		var cacheTimeout = null;
 		this.update = function(newCount) {
@@ -447,9 +435,9 @@
 				var newElems = document.createDocumentFragment();
 				var toBind = [];
 				for (var i=count; i<newCount; i++) {
-					if (cache.lastChild) {
-						toBind.push({elem: cache.lastChild});
-						newElems.appendChild(cache.lastChild);
+					if (cache.firstChild) {
+						toBind.push({elem: cache.firstChild, fromCache: true});
+						newElems.appendChild(cache.firstChild);
 					}
 					else {
 						var newElem = node.cloneNode(true);
@@ -461,16 +449,20 @@
 				}
 				parent.insertBefore(newElems, tail);
 				for (var i=0; i<toBind.length; i++) {
-					if (!toBind[i].data) getBindingStore(toBind[i].elem).rebind();
-					else dataBind(toBind[i].elem, toBind[i].data, context, getBindingStore(toBind[i].elem, true), debugInfo);
+					if (toBind[i].fromCache) bindingStores[count+i].rebind();
+					else {
+						var bindingStore = new BindingStore();
+						bindingStores.push(bindingStore);
+						dataBind(toBind[i].elem, toBind[i].data, context, bindingStore, debugInfo);
+					}
 				}
 			}
 			else if (newCount < count) {
 				var elem = tail ? tail.previousSibling : parent.lastChild;
-				for (var i=newCount; i<count; i++) {
+				for (var i=count-1; i>=newCount; i--) {
 					var prevElem = elem.previousSibling;
-					getBindingStore(elem).unbind();
-					cache.appendChild(elem);
+					bindingStores[i].unbind();
+					cache.insertBefore(elem, cache.firstChild);
 					elem = prevElem;
 				}
 			}
@@ -479,13 +471,13 @@
 				timer.cancel(cacheTimeout);
 				cacheTimeout = null;
 			}
-			if (cache.lastChild && api.repeaterCacheTTL) {
+			if (cache.firstChild && api.repeaterCacheTTL) {
 				cacheTimeout = timer.callAfter(api.repeaterCacheTTL, clearCache);
 			}
 		};
 		function clearCache() {
 			while (cache.lastChild) {
-				getBindingStore(cache.lastChild).remove();
+				bindingStores.pop();
 				$(cache.lastChild).remove();
 			}
 		}
@@ -613,24 +605,6 @@
 		}
 	}
 	
-	function listBindings(elem, recursive, level) {
-		if (!level) level = 0;
-		var indent = new Array(level+1).join(" ");
-		var bindingStore = dataBinder.getBindingStore(elem);
-		if (bindingStore) {
-			var bindings = bindingStore.bindings;
-			for (var i=0; i<bindings.length; i++) console.log(indent, elem.nodeName, bindings[i].isBound(), bindings[i].expr.replace(/\n/g, "\\n"));
-		}
-		else console.log(indent, elem.nodeName);
-		if (recursive) {
-			elem = elem.firstChild;
-			while (elem) {
-				if (elem.nodeType == 1) listBindings(elem, recursive, level+1);
-				elem = elem.nextSibling;
-			}
-		}
-	}
-	
 	/**
 	 * API
 	 */
@@ -648,14 +622,13 @@
 		setProp: setProp,			//set the given Property object as the underlying getter-setter for the specified object property
 		notifyArrayChange: notifyArrayChange,
 		Binding: Binding,
-		getBindingStore: getBindingStore,	//return an element's binding store
-		listBindings: listBindings,			//dump an element's binding store to the console
+		BindingStore: BindingStore,
 		dataBind: dataBind
 	};
 	
-	$.fn.dataBind = function(data, context, debugInfo) {
+	$.fn.dataBind = function(data, context, bindingStore, debugInfo) {
 		return this.each(function() {
-			dataBind(this, data, context, getBindingStore(this, true), debugInfo||[]);
+			dataBind(this, data, context, bindingStore||new BindingStore(), debugInfo||[]);
 		});
 	};
 	
@@ -666,7 +639,7 @@
 				binding.unbind();
 				if (window.console) console.log("Auto binding document, to disable auto binding set dataBinder.autoBind to false");
 				var startTime = new Date().getTime();
-				$(document.body).dataBind(window, window, ["document"]);
+				$(document.body).dataBind(window, window, null, ["document"]);
 				if (window.console) console.log("Finished binding document", new Date().getTime()-startTime, "ms");
 			}
 		});
