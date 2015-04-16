@@ -436,26 +436,20 @@
 				var toBind = [];
 				for (var i=count; i<newCount; i++) {
 					if (cache.firstChild) {
-						toBind.push({elem: cache.firstChild, fromCache: true});
 						newElems.appendChild(cache.firstChild);
+						bindingStores[i].rebind();
 					}
 					else {
 						var newElem = node.cloneNode(true);
 						newElems.appendChild(newElem);
 						var newData = extend(data);
 						setProp(newData, name, new Property(i));
-						toBind.push({elem: newElem, data: newData});
+						var bindingStore = new BindingStore();
+						bindingStores.push(bindingStore);
+						dataBind(newElem, newData, context, bindingStore, debugInfo);
 					}
 				}
 				parent.insertBefore(newElems, tail);
-				for (var i=0; i<toBind.length; i++) {
-					if (toBind[i].fromCache) bindingStores[count+i].rebind();
-					else {
-						var bindingStore = new BindingStore();
-						bindingStores.push(bindingStore);
-						dataBind(toBind[i].elem, toBind[i].data, context, bindingStore, debugInfo);
-					}
-				}
 			}
 			else if (newCount < count) {
 				var elem = tail ? tail.previousSibling : parent.lastChild;
