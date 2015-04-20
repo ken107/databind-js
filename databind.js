@@ -291,6 +291,7 @@
 		var derefKeys = new Array(path.length);
 		var keys = new Array(path.length);
 		var isSubscribed = false;
+		var changeIndex = 999;
 		var prop = new Property(null, function(subscribed) {
 			isSubscribed = subscribed;
 			if (subscribed) {
@@ -314,6 +315,10 @@
 		};
 		prop.get = function() {
 			if (!isSubscribed) buildParts();
+			else if (changeIndex != 999) {
+				rebuildPartsFrom(changeIndex);
+				changeIndex = 999;
+			}
 			var val = parts[parts.length-1];
 			if (val instanceof Property) val = val.get();
 			if (val instanceof Function) {
@@ -358,7 +363,7 @@
 		function subscribePart(part, i) {
 			if (part instanceof Property) {
 				keys[i] = part.subscribe(function() {
-					rebuildPartsFrom(i+1);
+					if (changeIndex > i+1) changeIndex = i+1;
 					prop.publish();
 				});
 			}
@@ -366,7 +371,7 @@
 		function subscribeDeref(deref, i) {
 			if (deref instanceof Property) {
 				derefKeys[i] = deref.subscribe(function() {
-					rebuildPartsFrom(i);
+					if (changeIndex > i) changeIndex = i;
 					prop.publish();
 				});
 			}
