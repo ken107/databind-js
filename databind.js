@@ -7,7 +7,8 @@
 		/\.\w+|\[(?:.*?\[.*?\])*?[^\[]*?\]/g,
 		/\bthis\.(\w+)\s*\(/g,
 		/-([a-z])/g,
-		/;\s*\S|^\s*if\b/
+		/;\s*\S|^\s*if\b/,
+		/^\d+$/
 	];
 	
 	var directives = {
@@ -75,6 +76,8 @@
 		};
 	};
 	
+	var console = window.console || {log: $.noop, warn: $.noop};
+	
 	function getAttrs(node) {
 		var attrs = {};
 		for (var i=0; i<node.attributes.length; i++) {
@@ -90,15 +93,12 @@
 		});
 	}
 	
-	function noOp() {
-	}
-	
 	function illegalOp() {
 		throw new Error("Illegal operation");
 	}
 	
 	function printDebug(debugInfo) {
-		if (window.console && debugInfo.length) console.log(debugInfo);
+		if (debugInfo.length) console.log(debugInfo);
 	}
 	
 	/**
@@ -159,14 +159,23 @@
 		var prop = new Property(obj[name]);
 		Object.defineProperty(obj, propPrefix+name, {value: prop, writable: false, enumerable: false, configurable: false});
 		if (obj instanceof Array) {
-			prop.get = function() {return obj[name];};
-			prop.set = function(newValue) {if (newValue !== obj[name]) {obj[name] = newValue; prop.publish();}};
+			observeArray(obj);
+			var isArrayIndex = regex[7].test(name);
+			if (!isArrayIndex || name < obj.length) {
+				var desc = Object.getOwnPropertyDescriptor(obj, name);
+				if (!desc || desc.configurable) Object.defineProperty(obj, name, {get: prop.get, set: prop.set, enumerable: true, configurable: isArrayIndex});
+				else {
+					if (name !== "length") console.warn("Object", obj, "property '" + name + "' is not configurable, change may not be detected");
+					prop.get = function() {return obj[name];};
+					prop.set = function(newValue) {if (newValue !== obj[name]) {obj[name] = newValue; prop.publish();}};
+				}
+			}
 		}
 		else {
 			var desc = Object.getOwnPropertyDescriptor(obj, name);
 			if (!desc || desc.configurable) Object.defineProperty(obj, name, {get: prop.get, set: prop.set, enumerable: true, configurable: false});
 			else {
-				if (window.console) console.warn("Object", obj, "property '" + name + "' is not configurable, change may not be detected");
+				console.warn("Object", obj, "property '" + name + "' is not configurable, change may not be detected");
 				prop.get = function() {return obj[name];};
 				prop.set = function(newValue) {if (newValue !== obj[name]) {obj[name] = newValue; prop.publish();}};
 			}
@@ -174,11 +183,30 @@
 		return prop;
 	}
 	
-	function notifyArrayChange(arr, index, howMany) {
-		var start = index || 0;
-		var end = howMany ? start+howMany : arr.length;
-		for (var i=start; i<end; i++) if (arr[propPrefix+i]) arr[propPrefix+i].publish();
-		if (end >= arr.length && arr[propPrefix+"length"]) arr[propPrefix+"length"].publish();
+	function observeArray(arr) {
+		if (arr.alter) return;
+		arr.alter = alterArray;
+		arr.push = $.proxy(arr.alter, arr, arr.push);
+		arr.pop = $.proxy(arr.alter, arr, arr.pop);
+		arr.shift = $.proxy(arr.alter, arr, arr.shift);
+		arr.unshift = $.proxy(arr.alter, arr, arr.unshift);
+		arr.splice = $.proxy(arr.alter, arr, arr.splice);
+	}
+	
+	function alterArray(func) {
+		var len = this.length;
+		func.apply(this, Array.prototype.slice.call(arguments, 1));
+		if (len != this.length) {
+			var prop = this[propPrefix+"length"];
+			if (prop) prop.publish();
+		}
+		for (var i=len; i<this.length; i++) {
+			var prop = this[propPrefix+i];
+			if (prop) {
+				prop.set(this[i]);
+				Object.defineProperty(this, i, {get: prop.get, set: prop.set, enumerable: true, configurable: true});
+			}
+		}
 	}
 	
 	/**
@@ -619,7 +647,7 @@
 		evalText: evalText,			//process a string containing {{binding expression}}'s, return a Property object or null if there is none
 		getProp: getProp,			//convert the specified object property to a getter-setter, return the underlying Property object
 		setProp: setProp,			//set the given Property object as the underlying getter-setter for the specified object property
-		notifyArrayChange: notifyArrayChange,
+		notifyArrayChange: $.noop,
 		Binding: Binding,
 		BindingStore: BindingStore,
 		dataBind: dataBind
@@ -636,10 +664,10 @@
 		var binding = new Binding("autoBind", prop, function() {
 			if (prop.get()) {
 				binding.unbind();
-				if (window.console) console.log("Auto binding document, to disable auto binding set dataBinder.autoBind to false");
+				console.log("Auto binding document, to disable auto binding set dataBinder.autoBind to false");
 				var startTime = new Date().getTime();
 				$(document.body).dataBind(window, window, null, ["document"]);
-				if (window.console) console.log("Finished binding document", new Date().getTime()-startTime, "ms");
+				console.log("Finished binding document", new Date().getTime()-startTime, "ms");
 			}
 		});
 		binding.bind();
