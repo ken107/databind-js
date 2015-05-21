@@ -1,0 +1,30 @@
+{
+  "name": "kenna",
+  "version": "0.0.3",
+  "description": "The ultimate MVC framework, no kidding",
+  "keywords": ["mvc", "model", "view", "controller", "data", "binding", "template", "component", "framework"],
+  "homepage": "http://kenna-js.com",
+  "license": "MIT",
+  "author": "Hai Phan <hai.phan@gmail.com>",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ken107/kenna-js"
+  },
+  "bugs": {
+    "url": "https://github.com/ken107/kenna-js/issues"
+  },
+  "files": [
+    "supermodel.js",
+	"databind.js",
+	"examples"
+  ],
+  "dependencies": {
+    "commander": "^2.8.1",
+    "fast-json-patch": "^0.5.2",
+    "jsonpointer": "^1.1.0",
+    "ws": "^0.7.1"
+  },
+  "engines": {
+    "node": ">=0.11.13"
+  }
+}
