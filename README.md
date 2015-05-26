@@ -81,7 +81,6 @@ function onTabClick(index, ev) {
 The special variable `event` contains the JQuery event object.
 
 http://jsfiddle.net/63p2r7bd/1/
-http://jsfiddle.net/63p2r7bd/4/
 
 #### Bind-Param Directive
 ```html
@@ -90,6 +89,10 @@ http://jsfiddle.net/63p2r7bd/4/
 	{{#tab.title}}
 </div>
 ```
+
+Check out the source code of this TODO list example.  It's quick and dirty compared to the modular version (todolist2), but it shows how much flexibility the framework leaves you to design your views.
+
+http://rawgit.com/ken107/kenna-js/master/examples/todolist/todo.html
 
 #### Bind-Context Directive
 ```html
@@ -128,6 +131,63 @@ loadMyTemplates(function onComplete(myTemplates) {
 	dataBinder.autoBind = true;
 });
 ```
+
+#### View Components
+A view component is essentially a template backed by a class that acts as its code behind.  There are different ways to implement view  components, the following is just one way.  Suppose your templates are in a file named components.html:
+```html
+//components.html
+<div data-class="Header">
+   ...
+</div>
+<div data-class="Footer">
+   ...
+</div>
+<div data-class="AlertPopup">
+   <div class="close-button" bind-event-click="this.onClose()"></div>
+   <span>{{#message}}</span>
+</div>
+...
+```
+
+Then you can load your templates as follows.  Note that as you load each template, you add a _bind-context_ directive that creates an instance of the class with the same name, and use it as the template's code behind.
+```javascript
+//load components
+dataBinder.templateInheritsData = false;
+dataBinder.autoBind = false;
+$("<div/>").load("components.html", function() {
+	$(this).children().each(function() {
+		var className = this.getAttribute("data-class");
+		if (className) {
+			this.setAttribute("bind-context", "new " + className + "(thisElem, data)");
+			dataBinder.templates[className] = this;
+		}
+	});
+	dataBinder.autoBind = true;
+});
+```
+
+In a separate JS file you declare your component classes:
+```javascript
+//components.js
+function Header(elem, data) {
+}
+function Footer(elem, data) {
+}
+function AlertPopup(elem, data) {
+    this.onClose = function() {
+	    $(elem).hide();
+	};
+}
+```
+
+The _templateInheritsData_ config is true by default, which means templates inherit all data from its parent.  If set to false, no data is inherited, any data used by the template has to be passed in using the _bind-param_ directive.  This is similar to passing parameters to a function.
+
+In the following snippet, the AlertPopup component is instantiated, with some data for its _message_ parameter.
+```html
+<div bind-template="AlertPopup" bind-param-message="#errorMessages[#result.errorCode]"></div>
+```
+
+http://rawgit.com/ken107/kenna-js/master/examples/todolist2/todo.html
 
 ### ADVANCED
 #### Calling dataBind manually
@@ -222,7 +282,7 @@ Server sends an ERR message to notify client that the previous request could not
 
 # The Controller
 The controller.js provided to the Supermodel specifies the controller actions that can be invoked by the clients.  It must contain a series of method declarations on `this`, each method corresponding to one action:
-```
+```javascript
 this.method = function(model, ...args) {
     ....
 };
@@ -231,7 +291,7 @@ this.method = function(model, ...args) {
 Note that the first argument to the method is always the Model object, followed by the arguments provided by the client in the ACT message.
 
 If a special method named `init` exists, it will be called automatically once when the controller starts up; this method can be used to initialize the Model.  Following is the controller for the sample MVC chat app:
-```
+```javascript
 this.init = function(model) {
 	model.chatLog = ["Welcome!"];
 };

@@ -1,0 +1,46 @@
+<div data-class="Filters"
+	bind-param-filters="['All', 'Active', 'Completed']">
+	<span class="filter"
+		bind-repeater-i="#filters.length"
+		bind-statement-1="$(thisElem).toggleClass('active', #currentFilter == #filters[#i])"
+		bind-event-click="data.currentFilter = #filters[#i]">
+		{{#filters[#i]}}
+	</span>
+</div>
+
+<ul data-class="TodoList"
+	bind-param-edit-item="null">
+	<li>
+		<input type="text" placeholder="What to do?"
+			bind-event-keypress="if (event.which == 13) { this.addItem(thisElem.value); thisElem.value = ''; return false; }" />
+	</li>
+	<li bind-repeater-i="#items.length"
+		bind-template="TodoItem"
+		bind-param-text="#items[#i].text"
+		bind-param-completed="#items[#i].completed"
+		bind-param-edit-mode="#items[#i] == #editItem"
+		bind-statement-1="$(thisElem).toggle(#filter == 'All' || #filter == 'Active' && !#items[#i].completed || #filter == 'Completed' && !!#items[#i].completed)"
+		bind-event-start-edit="data.editItem = #items[#i]"
+		bind-event-stop-edit="data.editItem = null"
+		bind-event-set-completed="this.setCompleted(#items[#i], event.data)"
+		bind-event-delete="this.deleteItem(#items[#i])">
+	</li>
+</ul>
+
+<li data-class="TodoItem"
+	bind-statement-1="$(thisElem).toggleClass('completed', #completed)">
+	<div class="delete-button"
+		bind-event-click="$(thisElem).trigger('delete')">X</div>
+	<input type="checkbox"
+		bind-statement-1="thisElem.checked = #completed"
+		bind-event-change="$(thisElem).trigger('set-completed', thisElem.checked)" />
+	<span bind-statement-1="$(thisElem).toggle(!#editMode)"
+		bind-statement-2="$(thisElem).css('text-decoration', #completed ? 'line-through' : 'none')"
+		bind-event-click="$(thisElem).trigger('start-edit')">
+		{{#text}}
+	</span>
+	<input type="text"
+		bind-statement-1="thisElem.value = #text"
+		bind-statement-2="$(thisElem).toggle(#editMode); if (#editMode) thisElem.focus()"
+		bind-event-keypress="if (event.which == 13) { data.text = thisElem.value; $(thisElem).trigger('stop-edit'); return false; }" />
+</li>

@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<style>
+		body {
+			font-family: Arial;
+		}
+		ul {
+			width: 300px;
+			padding: 10px;
+			list-style: none;
+			line-height: 30px;
+			background: #f3f3f3;
+		}
+		li > input[type=text] {
+			width: 250px;
+		}
+		.delete-button {
+			float: right;
+			cursor: pointer;
+		}
+		.filter {
+			margin-right: 10px;
+		}
+		.filter:not(.active) {
+			color: blue;
+			cursor: pointer;
+			text-decoration: underline;
+		}
+	</style>
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+	<script src="https://rawgit.com/ken107/kenna-js/master/databind.js"></script>
+	<script>
+		items = [];
+		editItem = null;
+		filters = ["All", "Active", "Completed"];
+		currentFilter = "All";
+	</script>
+</head>
+<body>
+	<h1>TODO</h1>
+	<div>
+		<span class="filter"
+			bind-repeater-i="#filters.length"
+			bind-statement-1="$(thisElem).toggleClass('active', #currentFilter == #filters[#i])"
+			bind-event-click="currentFilter = #filters[#i]">{{#filters[#i]}}</span>
+	</div>
+	<ul>
+		<li>
+			<input type="text" placeholder="What to do?"
+				bind-event-keypress="if (event.which == 13) { items.push({text: thisElem.value}); thisElem.value = ''; return false; }" />
+		</li>
+		<li bind-repeater-i="#items.length"
+			bind-param-item="#items[#i]"
+			bind-statement-1="$(thisElem).toggle(#currentFilter == 'All' || #currentFilter == 'Active' && !#items[#i].completed || #currentFilter == 'Completed' && !!#items[#i].completed)">
+			<div class="delete-button"
+				bind-event-click="items.splice(items.indexOf(#item), 1)">X</div>
+			<input type="checkbox"
+				bind-statement-1="thisElem.checked = #item.completed"
+				bind-event-change="data.item.completed = thisElem.checked" />
+			<span bind-statement-1="$(thisElem).toggle(#item != #editItem)"
+				bind-statement-2="$(thisElem).css('text-decoration', #item.completed ? 'line-through' : 'none')"
+				bind-event-click="editItem = #item">
+				{{#item.text}}
+			</span>
+			<input type="text"
+				bind-statement-1="thisElem.value = #item.text"
+				bind-statement-2="$(thisElem).toggle(#item == #editItem); if (#item == #editItem) thisElem.focus()"
+				bind-event-keypress="if (event.which == 13) { data.item.text = thisElem.value; editItem = null; return false; }" />
+		</li>
+	</ul>
+</body>
+</html>

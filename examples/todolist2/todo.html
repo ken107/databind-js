@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<style>
+		body {
+			font-family: Arial;
+		}
+		ul {
+			width: 300px;
+			padding: 10px;
+			list-style: none;
+			line-height: 30px;
+			background: #f3f3f3;
+		}
+		li > input[type=text] {
+			width: 250px;
+		}
+		.delete-button {
+			float: right;
+			cursor: pointer;
+		}
+		.filter {
+			margin-right: 10px;
+		}
+		.filter:not(.active) {
+			color: blue;
+			cursor: pointer;
+			text-decoration: underline;
+		}
+	</style>
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+	<script src="https://rawgit.com/ken107/kenna-js/master/databind.js"></script>
+	<script src="components.js"></script>
+	<script>
+		//load components
+		dataBinder.templateInheritsData = false;
+		dataBinder.autoBind = false;
+		$("<div/>").load("components.html", function() {
+			$(this).children().each(function() {
+				var className = this.getAttribute("data-class");
+				if (className) {
+					if (window[className]) this.setAttribute("bind-context", "new " + className + "(data)");
+					dataBinder.templates[className] = this;
+				}
+			});
+			dataBinder.autoBind = true;
+		});
+		
+		items = [];
+		currentFilter = 'All';
+		updateFlag = 0;
+	</script>
+</head>
+<body>
+	<span style="color: lightgray;">If running in Chrome, must run on http://, not file://</span>
+	<!-- The component breakdown here is for demonstration purpose, not intended to be ideal -->
+	<h1>TODO</h1>
+	<div bind-template="Filters"
+		bind-param-current-filter="#currentFilter">
+	</div>
+	<div bind-template="TodoList"
+		bind-param-items="#items"
+		bind-param-filter="#currentFilter"
+		bind-param-update-flag="#updateFlag">
+	</div>
+	<div>{{#updateFlag, #items.filter(function(item) {return !item.completed}).length}} things to do</div>
+</body>
+</html>

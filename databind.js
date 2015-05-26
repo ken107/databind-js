@@ -252,6 +252,7 @@
 			if (subscribed) for (var i=0; i<parts.length; i++) subscribePart(parts[i], i);
 			else for (var i=0; i<parts.length; i++) unsubscribePart(parts[i], i);
 		});
+		prop.isExpr = true;
 		prop.set = illegalOp;
 		prop.get = function() {
 			try {
@@ -552,7 +553,9 @@
 						var attrValue = attrs[attrName];
 						if (attrName.lastIndexOf(directives.bindParameter, 0) === 0) {
 							if (!extendedData) extendedData = extend(data);
-							setProp(extendedData, toCamelCase(attrName.substr(directives.bindParameter.length)), evalExpr(attrValue, data, context, {thisElem: node}, debugInfo));
+							var paramName = toCamelCase(attrName.substr(directives.bindParameter.length));
+							var prop = evalExpr(attrValue, data, context, {thisElem: node}, debugInfo);
+							bindParam(extendedData, paramName, attrValue, prop, bindingStore);
 						}
 						else if (attrName.lastIndexOf(directives.bindStatement, 0) === 0) {
 							var prop = evalExpr(attrValue, data, context, {thisElem: node}, debugInfo);
@@ -590,7 +593,9 @@
 					if (attrName.lastIndexOf(directives.bindParameter, 0) === 0) {
 						node.removeAttribute(attrName);
 						if (!extendedData) extendedData = extend(data);
-						setProp(extendedData, toCamelCase(attrName.substr(directives.bindParameter.length)), evalExpr(attrValue, data, context, {thisElem: node}, debugInfo));
+						var paramName = toCamelCase(attrName.substr(directives.bindParameter.length));
+						var prop = evalExpr(attrValue, data, context, {thisElem: node}, debugInfo);
+						bindParam(extendedData, paramName, attrValue, prop, bindingStore);
 					}
 					else if (attrName.lastIndexOf(directives.bindStatement, 0) === 0) {
 						node.removeAttribute(attrName);
@@ -630,6 +635,17 @@
 				bindingStore.bindings.push(binding);
 			}
 		}
+	}
+	
+	function bindParam(data, paramName, attrValue, prop, bindingStore) {
+		if (prop.isExpr) {
+			var binding = new Binding(attrValue, prop, function() {
+				data[paramName] = prop.get();
+			});
+			binding.bind();
+			bindingStore.bindings.push(binding);
+		}
+		else setProp(data, paramName, prop);
 	}
 	
 	/**
