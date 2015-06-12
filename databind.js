@@ -195,7 +195,7 @@
 	
 	function alterArray(func) {
 		var len = this.length;
-		func.apply(this, Array.prototype.slice.call(arguments, 1));
+		var val = func.apply(this, Array.prototype.slice.call(arguments, 1));
 		if (len != this.length) {
 			var prop = this[propPrefix+"length"];
 			if (prop) prop.publish();
@@ -207,6 +207,7 @@
 				Object.defineProperty(this, i, {get: prop.get, set: prop.set, enumerable: true, configurable: true});
 			}
 		}
+		return val;
 	}
 	
 	/**
