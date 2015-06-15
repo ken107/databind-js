@@ -1,3 +1,10 @@
+/**
+ * Kenna <kenna-js.com>
+ * Copyright 2015, Hai Phan <hai.phan@gmail.com>
+ *
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
+ */
 var program = require("commander"),
 	fs = require("fs"),
 	WebSocketServer = require("ws").Server,
