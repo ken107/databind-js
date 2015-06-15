@@ -3,7 +3,7 @@
 	var regex = [
 		/{{[\s\S]*?}}/g,
 		/^\s*parts\[0\].get\(\)\s*$/,
-		/'.*?'|".*?"|#\w+(?:\.\w+|\[(?:.*?\[.*?\])*?[^\[]*?\])*/g,
+		/'.*?'|".*?"|#\w+(?:\.\w+|\[(?:.*?\[.*?\])*?[^\[]*?\])*(\s*(?:\+\+|--|\+=|-=|\*=|\/=|%=|=(?!=)))?/g,
 		/\.\w+|\[(?:.*?\[.*?\])*?[^\[]*?\]/g,
 		/\bthis\.(\w+)\s*\(/g,
 		/-([a-z])/g,
@@ -225,10 +225,19 @@
 		var strings = [];
 		var parts = [];
 		var pmap = {};
-		var expr = str.replace(regex[2], function(bindingSrc) {
-			if (bindingSrc.charAt(0) === "'" || bindingSrc.charAt(0) === '"') {
+		var expr = str.replace(regex[2], function(bindingSrc, operator) {
+			var firstChar = bindingSrc.charAt(0);
+			var lastChar = bindingSrc.charAt(bindingSrc.length-1);
+			if (firstChar == "'" || firstChar == '"') {
 				strings.push(bindingSrc.substr(1, bindingSrc.length-2));
 				return "strings[" + (strings.length-1) + "]";
+			}
+			else if (lastChar == '+' || lastChar == '-' || lastChar == '=') {
+				var prop = evalBindingSrc(bindingSrc.substring(1, bindingSrc.length-operator.length), data, context, scope, debugInfo);
+				var part = {subscribe: $.noop, unsubscribe: $.noop};
+				Object.defineProperty(part, "value", {get: prop.get, set: prop.set, enumerable: true, configurable: false});
+				parts.push(part);
+				return "parts[" + (parts.length-1) + "].value" + operator;
 			}
 			else if (pmap[bindingSrc]) return pmap[bindingSrc];
 			else {
