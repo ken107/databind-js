@@ -1,7 +1,7 @@
 {
   "name": "kenna",
-  "version": "0.0.3",
-  "description": "The ultimate MVC framework, no kidding",
+  "version": "0.0.4",
+  "description": "Not another MVC framework",
   "keywords": ["mvc", "model", "view", "controller", "data", "binding", "template", "component", "framework"],
   "homepage": "http://kenna-js.com",
   "license": "MIT",
