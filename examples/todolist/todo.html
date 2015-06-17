@@ -43,30 +43,30 @@
 		<span class="filter"
 			bind-repeater-i="#filters.length"
 			bind-statement-1="$(thisElem).toggleClass('active', #currentFilter == #filters[#i])"
-			bind-event-click="currentFilter = #filters[#i]">{{#filters[#i]}}</span>
+			bind-event-click="#currentFilter = #filters[#i]">{{#filters[#i]}}</span>
 	</div>
 	<ul>
 		<li>
 			<input type="text" placeholder="What to do?"
-				bind-event-keypress="if (event.which == 13) { items.push({text: thisElem.value}); thisElem.value = ''; return false; }" />
+				bind-event-keypress="if (event.which == 13) { #items.push({text: thisElem.value}); thisElem.value = ''; return false; }" />
 		</li>
 		<li bind-repeater-i="#items.length"
 			bind-param-item="#items[#i]"
 			bind-statement-1="$(thisElem).toggle(#currentFilter == 'All' || #currentFilter == 'Active' && !#items[#i].completed || #currentFilter == 'Completed' && !!#items[#i].completed)">
 			<div class="delete-button"
-				bind-event-click="items.splice(items.indexOf(#item), 1)">X</div>
+				bind-event-click="#items.splice(#items.indexOf(#item), 1)">X</div>
 			<input type="checkbox"
 				bind-statement-1="thisElem.checked = #item.completed"
-				bind-event-change="data.item.completed = thisElem.checked" />
+				bind-event-change="#item.completed = thisElem.checked" />
 			<span bind-statement-1="$(thisElem).toggle(#item != #editItem)"
 				bind-statement-2="$(thisElem).css('text-decoration', #item.completed ? 'line-through' : 'none')"
-				bind-event-click="editItem = #item">
+				bind-event-click="#editItem = #item">
 				{{#item.text}}
 			</span>
 			<input type="text"
 				bind-statement-1="thisElem.value = #item.text"
 				bind-statement-2="$(thisElem).toggle(#item == #editItem); if (#item == #editItem) thisElem.focus()"
-				bind-event-keypress="if (event.which == 13) { data.item.text = thisElem.value; editItem = null; return false; }" />
+				bind-event-keypress="if (event.which == 13) { #item.text = thisElem.value; #editItem = null; return false; }" />
 		</li>
 	</ul>
 </body>

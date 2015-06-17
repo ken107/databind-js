@@ -39,30 +39,67 @@
 			$(this).children().each(function() {
 				var className = this.getAttribute("data-class");
 				if (className) {
-					if (window[className]) this.setAttribute("bind-context", "new " + className + "(data)");
+					this.setAttribute("bind-context", "new " + className + "(thisElem, data)");
 					dataBinder.templates[className] = this;
 				}
 			});
 			dataBinder.autoBind = true;
 		});
-		
+	</script>
+	<script>
+		//model
 		items = [];
 		currentFilter = 'All';
-		updateFlag = 0;
+		filteredItems = [];
+		countActive = 0;
+		
+		//controller
+		function setFilter(filter) {
+			currentFilter = filter;
+			update();
+		}
+		function addItem(text) {
+			items.push({text: text});
+			update();
+		}
+		function deleteItem(item) {
+			items.splice(items.indexOf(item), 1);
+			update();
+		}
+		function setCompleted(item, completed) {
+			item.completed = completed;
+			update();
+		}
+		function update() {
+			filteredItems = items.filter(function(item) {
+				return currentFilter == 'All' || currentFilter == 'Active' && !item.completed || currentFilter == 'Completed' && !!item.completed;
+			});
+			countActive = items.filter(function(item) {
+				return !item.completed;
+			}).length;
+		}
 	</script>
 </head>
 <body>
-	<span style="color: lightgray;">If running in Chrome, must run on http://, not file://</span>
-	<!-- The component breakdown here is for demonstration purpose, not intended to be ideal -->
+	<!--
+		This example demonstrates an important design pattern:
+		Child components generally do not have total knowledge of how an event affects the model.  So when an event occurs,
+		instead of directly updating the model, events should be propagated up and be handled by the parent controller.
+		
+		There are ways to do it without following this pattern, the framework allows all.  However, it results in code
+		that are rather kludgey.
+	-->
 	<h1>TODO</h1>
 	<div bind-template="Filters"
-		bind-param-current-filter="#currentFilter">
+		bind-param-current-filter="#currentFilter"
+		bind-event-set-filter="setFilter(event.data)">
 	</div>
 	<div bind-template="TodoList"
-		bind-param-items="#items"
-		bind-param-filter="#currentFilter"
-		bind-param-update-flag="#updateFlag">
+		bind-param-items="#filteredItems"
+		bind-event-add-item="addItem(event.data)"
+		bind-event-delete-item="deleteItem(event.data)"
+		bind-event-set-completed="setCompleted(event.data.item, event.data.completed)">
 	</div>
-	<div>{{#updateFlag, #items.filter(function(item) {return !item.completed}).length}} things to do</div>
+	<div>{{#countActive}} things to do</div>
 </body>
 </html>

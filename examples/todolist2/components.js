@@ -1,14 +1,32 @@
-function TodoList(data) {
-	this.addItem = function(text) {
-		data.items.push({text: text});
-		data.updateFlag++;
-	};
+function Filters(elem, data) {
+	this.setFilter = function(filter) {
+		$(elem).triggerHandler('set-filter', filter);
+	}
+}
+
+function TodoList(elem, data) {
 	this.deleteItem = function(item) {
-		data.items.splice(data.items.indexOf(item), 1);
-		data.updateFlag++;
-	};
+		$(elem).triggerHandler('delete-item', item);
+	}
+	this.addItem = function(text) {
+		$(elem).triggerHandler('add-item', text);
+	}
 	this.setCompleted = function(item, completed) {
-		item.completed = completed;
-		data.updateFlag++;
-	};
+		$(elem).triggerHandler('set-completed', {item: item, completed: completed});
+	}
+}
+
+function TodoItem(elem, data) {
+	this.deleteItem = function() {
+		$(elem).triggerHandler('delete-item');
+	}
+	this.setCompleted = function(completed) {
+		$(elem).triggerHandler('set-completed', completed);
+	}
+	this.startEdit = function() {
+		$(elem).triggerHandler('start-edit')
+	}
+	this.stopEdit = function() {
+		$(elem).triggerHandler('stop-edit');
+	}
 }
