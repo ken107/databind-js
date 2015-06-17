@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<link href="../todolist2/components.css" rel="stylesheet" type="text/css" />
+	<style>
+		body {
+			font-family: Arial;
+		}
+	</style>
+	
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+	<script src="https://rawgit.com/ken107/kenna-js/master/databind.js"></script>
+	<script src="http://rawgit.com/Starcounter-Jack/JSON-Patch/master/src/json-patch.js"></script>
+	<script src="../todolist2/components.js"></script>
+	<script>
+		//load components
+		dataBinder.templateInheritsData = false;
+		dataBinder.autoBind = false;
+		$("<div/>").load("../todolist2/components.html", function() {
+			$(this).children().each(function() {
+				var className = this.getAttribute("data-class");
+				if (className) {
+					this.setAttribute("bind-context", "new " + className + "(thisElem, data)");
+					dataBinder.templates[className] = this;
+				}
+			});
+			dataBinder.autoBind = true;
+		});
+	</script>
+	<script>
+		items = [];
+		
+		var ws = new (WebSocket || MozWebSocket)("ws://localhost:8080/todo");
+		ws.onopen = function() {
+			ws.send(JSON.stringify({cmd: "SUB", pointers: ["/items"]}));
+		};
+		ws.onmessage = function(e) {
+			var m = eval('(' + e.data + ')');
+			if (m.cmd == "PUB") {
+				jsonpatch.apply(window, m.patches);
+				update();
+			}
+		};
+		function action(method, args) {
+			ws.send(JSON.stringify({cmd: "ACT", method: method, args: args}));
+		}
+	</script>
+</head>
+<body>
+	<div bind-template="TodoList"
+		bind-param-items="#items"
+		bind-event-add-item="action('addItem', [event.data])"
+		bind-event-delete-item="action('deleteItem', [#items.indexOf(event.data)])"
+		bind-event-set-completed="action('setCompleted', [#items.indexOf(event.data.item), event.data.completed])"
+		bind-event-set-text="action('setText', [#items.indexOf(event.data.item), event.data.text])">
+	</div>
+</body>
+</html>

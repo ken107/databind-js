@@ -1,0 +1,24 @@
+.todo-filters  span {
+	margin-right: 10px;
+}
+.todo-filters span:not(.active) {
+	color: blue;
+	cursor: pointer;
+	text-decoration: underline;
+}
+
+.todo-list ul {
+	width: 300px;
+	padding: 10px;
+	list-style: none;
+	line-height: 30px;
+	background: #f3f3f3;
+}
+.todo-list input[type=text] {
+	width: 250px;
+}
+
+.todo-item .delete-button {
+	float: right;
+	cursor: pointer;
+}

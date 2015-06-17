@@ -115,14 +115,14 @@ function TodoList(elem, data) {
 #### Bind-Template Directive
 ```html
 <div>
-	<div bind-template="LoginDialog"></div>
+	<div bind-template="LoginForm"></div>
 </div>
 ```
 
-The inner div will be replaced by the template named _LoginDialog_.  Register your templates with the global `dataBinder` object:
+The inner div will be replaced by the template named _LoginForm_.  Register your templates with the global `dataBinder` object:
 ```javascript
 dataBinder.templates = {
-	LoginDialog: ...
+	LoginForm: ...
 }
 ```
 
@@ -179,7 +179,7 @@ You can also change the names of binding directives via `dataBinder.directives`.
 
 
 #### View Components
-In general a view component is a template backed by a class that acts as its code behind.  There are different ways to implement view  components, the following is just one way.  Suppose your templates and code-behind are defined in components.html and components.js:
+In general a view component (or simply _view_) is a template backed by a class that acts as its controller/code-behind.  There are different ways to implement view components, the following is just one way.  Suppose your templates and controllers are defined in components.html and components.js:
 ```html
 //components.html
 <div data-class="TodoList">
@@ -212,7 +212,7 @@ function DeleteButton(elem, data) {
 }
 ```
 
-Then you can load your components as follows.  Note that as you load each template, you add a _bind-context_ directive that creates an instance of the class with the same name, and use it as the template's code behind.
+Then you can load your components as follows.  As you load each template, you add a _bind-context_ directive that instantiates the controller and set it as the context (`this`) of the template.
 ```javascript
 //load components
 dataBinder.templateInheritsData = false;
@@ -230,8 +230,6 @@ $("<div/>").load("components.html", function() {
 ```
 
 The `templateInheritsData` config is true by default, which means templates inherit all data from its parent.  If set to false, no data is inherited, any data used by the template has to be passed in using the _bind-param_ directive.  Reusable components should require all parameters to be explicitly passed in, hence we set it to false.
-
-You may be put back by having to write this boiler plate code.  The reason Kenna does not do this for you is it does not want to make any assumption about how you define and load your templates.  This is in alignment with its maximum-flexibility, minimum-learning curve philosphy.
 
 http://rawgit.com/ken107/kenna-js/master/examples/todolist2/todo.html
 
@@ -292,6 +290,7 @@ Server sends an ERR message to notify client that the previous request could not
 }
 ```
 
+
 # The Controller
 The controller.js provided to the Supermodel specifies the controller actions that can be invoked by the clients.  It must contain a series of method declarations on `this`, each method corresponding to one action:
 ```javascript
@@ -314,3 +313,21 @@ this.sendChat = function(model, name, message) {
 
 #### Live Code Update
 The Supermodel monitors the controller.js file for changes and automatically reloads it.  This allows code update without requiring restart.  This is useful in live applications since restarting the process causes loss of all client connections.
+
+#### Running the Chat Example
+Open a command prompt in the kenna-js directory and run:
+```
+npm install
+node supermodel.js examples/chat/chat.js
+```
+
+That will start the chat controller on localhost:8080.  Then open the file examples/chat/chat.html in two browser windows and start chatting!
+
+#### Running the Shared TodoList Example
+Open a command prompt in the kenna-js directory and run:
+```
+npm install
+node supermodel.js examples/sharedtodolist/todo_controller.js
+```
+
+Then open the file examples/sharedtodolist/todo.html in two or more browser windows.  If you use Chrome, you must run a local web server because Chrome does not allow AJAX over file:// URL.  This example reuses the TodoList components from the todolist2 example.

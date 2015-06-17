@@ -1,4 +1,4 @@
-<div data-class="Filters"
+<div data-class="Filters" class="todo-filters"
 	bind-param-filters="['All', 'Active', 'Completed']">
 	<span class="filter"
 		bind-repeater-i="#filters.length"
@@ -8,25 +8,40 @@
 	</span>
 </div>
 
-<ul data-class="TodoList"
-	bind-param-edit-item="null">
-	<li>
-		<input type="text" placeholder="What to do?"
-			bind-event-keypress="if (event.which == 13) { this.addItem(thisElem.value); thisElem.value = ''; return false; }" />
-	</li>
-	<li bind-repeater-i="#items.length"
-		bind-template="TodoItem"
-		bind-param-text="#items[#i].text"
-		bind-param-completed="#items[#i].completed"
-		bind-param-edit-mode="#items[#i] == #editItem"
-		bind-event-start-edit="#editItem = #items[#i]"
-		bind-event-stop-edit="#editItem = null"
-		bind-event-set-completed="this.setCompleted(#items[#i], event.data)"
-		bind-event-delete-item="this.deleteItem(#items[#i])">
-	</li>
-</ul>
+<div data-class="TodoList" class="todo-list">
+	<h1>TODO</h1>
+	<div bind-template="Filters"
+		bind-param-current-filter="#currentFilter"
+		bind-event-set-filter="#currentFilter = event.data">
+	</div>
+	<ul>
+		<li>
+			<input type="text" placeholder="What to do?"
+				bind-event-keypress="if (event.which == 13) { this.addItem(thisElem.value); thisElem.value = ''; return false; }" />
+		</li>
+		<li bind-repeater-i="#filteredItems.length"
+			bind-template="TodoItem"
+			bind-param-text="#filteredItems[#i].text"
+			bind-param-completed="#filteredItems[#i].completed"
+			bind-param-edit-mode="#filteredItems[#i] == #editItem"
+			bind-event-start-edit="#editItem = #filteredItems[#i]"
+			bind-event-stop-edit="#editItem = null"
+			bind-event-set-completed="this.setCompleted(#filteredItems[#i], event.data)"
+			bind-event-set-text="this.setText(#filteredItems[#i], event.data)"
+			bind-event-delete-item="this.deleteItem(#filteredItems[#i])">
+		</li>
+	</ul>
+	<div>{{#countActive}} things to do</div>
+	<!-- the following detects when items are added/deleted, when their completed state change,
+		or when the selected filter changes, and refresh the filtered item list and active count
+	-->
+	<div bind-statement-1="#items.length, #currentFilter, this.update()">
+		<div bind-repeater-i="#items.length"
+			bind-statement-1="#items[#i].completed, this.update()"></div>
+	</div>
+</div>
 
-<li data-class="TodoItem">
+<li data-class="TodoItem" class="todo-item">
 	<div class="delete-button"
 		bind-event-click="this.deleteItem()">X</div>
 	<input type="checkbox"
@@ -40,5 +55,5 @@
 	<input type="text"
 		bind-statement-1="thisElem.value = #text"
 		bind-statement-2="$(thisElem).toggle(#editMode); if (#editMode) thisElem.focus()"
-		bind-event-keypress="if (event.which == 13) { #text = thisElem.value; this.stopEdit(); return false; }" />
+		bind-event-keypress="if (event.which == 13) { this.setText(thisElem.value); this.stopEdit(); return false; }" />
 </li>
