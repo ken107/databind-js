@@ -55,7 +55,7 @@ http://jsfiddle.net/p9s1yjqc/
 #### Bind-Statement Directive
 ```html
 <div bind-repeater-i="#todos.length"
-	bind-statement-1="thisElem.style.textDecoration = #todos[#i].done ? 'strike-through' : ''"
+	bind-statement-1="thisElem.style.textDecoration = #todos[#i].done ? 'line-through' : ''"
 	bind-statement-2="thisElem.style.display = #todos[#i].done && #hideInactive ? 'none' : ''"
 	bind-statement-3="$(thisElem).toggleClass(#i % 2 == 0 ? 'even-row' : 'odd-row')">
 	{{#todos[#i].text}}
@@ -78,7 +78,7 @@ The special variable `thisElem` point to the current element.  The statement-_id
 
 The special variable `event` contains the JQuery event object.
 
-http://jsfiddle.net/8s2tbmcx/
+http://jsfiddle.net/8s2tbmcx/1/
 
 
 #### Bind-Param Directive
@@ -135,103 +135,12 @@ loadMyTemplates(function onComplete(myTemplates) {
 });
 ```
 
-The `bind-template` and `bind-context` directives together allow you to build reusable _view components_.  See the Advanced section for an example.
+The `bind-template` and `bind-context` directives together allow you to build reusable [view components](https://github.com/ken107/kenna-js/wiki/Advanced).
 
 
 ### ADVANCED
 
-#### Calling dataBind manually
-By default the dataBinder auto-binds the entire document as soon as it is ready, by calling:
-```javascript
-$(document).ready(function() {
-	$(document.body).dataBind(window, window);
-})
-```
-
-You can disable auto-binding and call dataBind manually.  The method signature is:
-```javascript
-$(elem).dataBind(data, context);
-```
-where:
-* _data_ is an object containing your binding sources
-* _context_ is the value of the `this` keyword in your binding expressions
-
-
-#### Customization
-To define custom directives, set `dataBinder.onDataBinding` to a function that will be called before each node is bound.  Inside this function you can process your custom directives by macro-expanding them into binding directives.  For example:
-```javascript
-dataBinder.onDataBinding = function(node) {
-	//visibility
-	var expr = node.getAttribute("xx-visible");
-	if (expr) node.setAttribute("bind-statement-set-visibility", expr + " ? $(thisElem).fadeIn() : $(thisElem).fadeOut()");
-	
-	//calling a global function to do the job
-	expr = node.getAttribute("xx-transform");
-	if (expr) node.setAttribute("bind-statement-set-transform", "window.setTransform(thisElem, " + expr + ")");
-	
-	//conditional
-	expr = node.getAttribute("xx-if");
-	if (expr) node.setAttribute("bind-repeater-i", expr + " ? 1 : 0");
-};
-```
-
-You can also change the names of binding directives via `dataBinder.directives`.
-
-
-#### View Components
-In general a view component (or simply _view_) is a template backed by a class that acts as its controller/code-behind.  There are different ways to implement view components, the following is just one way.  Suppose your templates and controllers are defined in components.html and components.js:
-```html
-//components.html
-<div data-class="TodoList">
-	<div bind-repeater-i="#todos.length"
-		bind-template="TodoItem"
-		bind-param-text="#todos[#i].text"
-		bind-event-delete-item="this.deleteItem(#i)" />
-</div>
-<div data-class="TodoItem">
-	{{#text}}
-	<div bind-template="DeleteButton" bind-event-click="this.onDelete()" />
-</div>
-<div data-class="DeleteButton">
-</div>
-```
-
-```javascript
-//components.js
-function TodoList(elem, data) {
-	this.deleteItem = function(index) {
-		data.todos.splice(index,1);
-	}
-}
-function TodoItem(elem, data) {
-	this.onDelete = function() {
-		$(elem).triggerHandler('delete-item');
-	}
-}
-function DeleteButton(elem, data) {
-}
-```
-
-Then you can load your components as follows.  As you load each template, you add a _bind-context_ directive that instantiates the controller and set it as the context (`this`) of the template.
-```javascript
-//load components
-dataBinder.templateInheritsData = false;
-dataBinder.autoBind = false;
-$("<div/>").load("components.html", function() {
-	$(this).children().each(function() {
-		var className = this.getAttribute("data-class");
-		if (className) {
-			this.setAttribute("bind-context", "new " + className + "(thisElem, data)");
-			dataBinder.templates[className] = this;
-		}
-	});
-	dataBinder.autoBind = true;
-});
-```
-
-The `templateInheritsData` config is true by default, which means templates inherit all data from its parent.  If set to false, no data is inherited, any data used by the template has to be passed in using the _bind-param_ directive.  Reusable components should require all parameters to be explicitly passed in, hence we set it to false.
-
-http://rawgit.com/ken107/kenna-js/master/examples/todolist2/todo.html
+See the [wiki](https://github.com/ken107/kenna-js/wiki/Advanced).
 
 
 # The Model
@@ -249,10 +158,10 @@ Note the difference with an Angular-Firebase solution, where your controller res
     -p, --port <port>  listening port
 ```
 
-The supermodel accepts client Websocket connections on a specific host and port (or *:8080 if not specified).  This connection is to be used for the PUB/SUB mechanism, as well as for sending controller actions (or events).  Each message is a Websocket text frame, the content of which is a JSON object containing a _cmd_ property whose value is one of "SUB", "PUB", "ACT", or "ERR".
+The supermodel accepts client Websocket connections on a specific host and port (or *:8080 if not specified).  This connection is to be used for the PUB/SUB mechanism, as well as for sending controller actions (or events).  Each message is a Websocket text frame, the content of which is a JSON object containing a _cmd_ property whose value is one of "SUB", "UNSUB", "PUB", or "ACT".
 
-#### SUB
-Clients send a SUB message to the server to start listening for changes to the Model.  The message must contain a _pointers_ property which holds an array of JSON Pointers (RFC 6901) into the server's Model object:
+#### SUB/UNSUB
+Clients send a SUB/UNSUB message to the server to start/stop listening for changes to the Model.  The message must contain a _pointers_ property which holds an array of JSON Pointers (RFC 6901) into the server's Model object:
 ```
 {
     cmd: "SUB",
@@ -279,20 +188,9 @@ Clients send an ACT message to the server to execute a controller action.  The m
 }
 ```
 
-#### ERR
-Server sends an ERR message to notify client that the previous request could not be completed.  The message shall contain an _id_ property whose value is taken from the property of the same name on the request message if present, a _code_ string property which contains an error code, and a _message_ property containing the error details.
-```
-{
-    cmd: "ERR",
-	id: request.id,
-	code: "ERROR_CODE",
-	message: "error message"
-}
-```
-
 
 # The Controller
-The controller.js provided to the Supermodel specifies the controller actions that can be invoked by the clients.  It must contain a series of method declarations on `this`, each method corresponding to one action:
+The controller.js provided to the supermodel specifies the controller actions that can be invoked by the clients.  It must contain a series of method declarations on `this`, each method corresponding to one action:
 ```javascript
 this.method = function(model, ...args) {
     ....

@@ -10,7 +10,7 @@
 	
 	<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
 	<script src="https://rawgit.com/ken107/kenna-js/master/databind.js"></script>
-	<script src="http://rawgit.com/Starcounter-Jack/JSON-Patch/master/src/json-patch.js"></script>
+	<script src="https://rawgit.com/ken107/JSON-Patch/master/src/json-patch.js"></script>
 	<script src="../todolist2/components.js"></script>
 	<script>
 		//load components
@@ -36,10 +36,7 @@
 		};
 		ws.onmessage = function(e) {
 			var m = eval('(' + e.data + ')');
-			if (m.cmd == "PUB") {
-				jsonpatch.apply(window, m.patches);
-				update();
-			}
+			if (m.cmd == "PUB") jsonpatch.apply(window, m.patches);
 		};
 		function action(method, args) {
 			ws.send(JSON.stringify({cmd: "ACT", method: method, args: args}));

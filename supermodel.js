@@ -9,7 +9,7 @@ var program = require("commander"),
 	fs = require("fs"),
 	WebSocketServer = require("ws").Server,
 	jsonpointer = require("jsonpointer"),
-	jsonpatch = require("fast-json-patch"),
+	observe = require("jsonpatch-observe").observe,
 	model = {},
 	actions = {};
 
@@ -45,48 +45,62 @@ fs.watchFile(program.args[0], function(curr, prev) {
 
 var wss = new WebSocketServer({host: program.host, port: program.port});
 wss.on("connection", function(ws) {
+	var session = {};
+	var subscriptions = {};
 	ws.on("message", function(text) {
+		model.session = session;
 		var m = {};
 		try {
 			m = JSON.parse(text);
-			if (!(m instanceof Object)) throw {code: "BAD_REQUEST", message: "Message must be a JSON object"};
-			if (!m.cmd) throw {code: "BAD_REQUEST", message: "Missing param 'cmd'"};
+			if (!(m instanceof Object)) throw "Message must be a JSON object";
+			if (!m.cmd) throw "Missing param 'cmd'";
 			if (m.cmd === "SUB") {
-				if (!m.pointers) throw {code: "BAD_REQUEST", message: "Missing param 'pointers'"};
-				if (!(m.pointers instanceof Array)) throw {code: "BAD_REQUEST", message: "Param 'pointers' must be an array"};
-				m.pointers.forEach(subscribe);
+				if (!m.pointers) throw "Missing param 'pointers'";
+				(m.pointers instanceof Array ? m.pointers : [m.pointers]).forEach(subscribe);
+			}
+			else if (m.cmd === "UNSUB") {
+				if (!m.pointers) throw "Missing param 'pointers'";
+				(m.pointers instanceof Array ? m.pointers : [m.pointers]).forEach(unsubscribe);
 			}
 			else if (m.cmd === "ACT") {
-				if (m.method === "init") throw {code: "FORBIDDEN", message: "Method 'init' is called automatically only once at startup"};
-				if (!(actions[m.method] instanceof Function)) throw {code: "NOT_FOUND", message: "Method '" + m.method + "' not found"};
+				if (m.method === "init") throw "Method 'init' is called automatically only once at startup";
+				if (!(actions[m.method] instanceof Function)) throw "Method '" + m.method + "' not found";
 				actions[m.method].apply(actions, [model].concat(m.args));
 			}
-			else throw {code: "BAD_REQUEST", message: "Unknown command '" + m.cmd + "'"};
+			else throw "Unknown command '" + m.cmd + "'";
 		}
 		catch (err) {
-			if (err.stack) console.log(err.stack);
-			sendError(m.id, err.code || "ERROR", err.message);
+			console.log(err.stack || err);
 		}
+		model.session = null;
+	});
+	ws.on("close", function() {
+		for (var pointer in subscriptions) subscriptions[pointer].cancel();
 	});
 	function subscribe(pointer) {
-		var o = jsonpointer.get(model, pointer);
-		if (!(o instanceof Object)) throw {code: "NOT_FOUND", message: "No object at '" + pointer + "'"};
-		sendPatches(pointer, jsonpatch.compare({}, o));
-		var observer = jsonpatch.observe(o, function(patches) {
-			sendPatches(pointer, patches);
-		});
-		ws.on("close", function() {
-			jsonpatch.unobserve(o, observer);
-		});
-	}
-	function sendPatches(pointer, patches) {
-		for (var i=0; i<patches.length; i++) {
-			patches[i].path = pointer + patches[i].path;
-			if (patches[i].from) patches[i].from = pointer + patches[i].from;
+		if (pointer == "") throw "Cannot subscribe to the root model object";
+		if (subscriptions[pointer]) subscriptions[pointer].count++;
+		else {
+			var o = jsonpointer.get(model, pointer);
+			if (!(o instanceof Object)) {
+				console.warn("Can't subscribe to '" + pointer + "', value is null or not an object");
+				return;
+			}
+			sendPatches([{op: "replace", path: pointer, value: o}]);
+			subscriptions[pointer] = observe(o, sendPatches, pointer);
+			subscriptions[pointer].count = 1;
 		}
-		ws.send(JSON.stringify({cmd: "PUB", patches: patches}));
 	}
-	function sendError(id, code, message) {
-		ws.send(JSON.stringify({cmd: "ERR", id: id, code: code, message: message}));
+	function unsubscribe(pointer) {
+		if (subscriptions[pointer]) {
+			subscriptions[pointer].count--;
+			if (subscriptions[pointer].count <= 0) {
+				subscriptions[pointer].cancel();
+				delete subscriptions[pointer];
+			}
+		}
+	}
+	function sendPatches(patches) {
+		ws.send(JSON.stringify({cmd: "PUB", patches: patches}));
 	}
 });
