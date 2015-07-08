@@ -82,8 +82,6 @@
 		};
 	};
 	
-	var console = window.console || {log: $.noop, warn: $.noop};
-	
 	function getAttrs(node) {
 		var attrs = {};
 		for (var i=0; i<node.attributes.length; i++) {
@@ -104,7 +102,7 @@
 	}
 	
 	function printDebug(debugInfo) {
-		if (debugInfo.length) console.log(debugInfo);
+		if (debugInfo.length) api.console.log(debugInfo);
 	}
 	
 	/**
@@ -171,7 +169,7 @@
 				var desc = Object.getOwnPropertyDescriptor(obj, name);
 				if (!desc || desc.configurable) Object.defineProperty(obj, name, {get: prop.get, set: prop.set, enumerable: true, configurable: isArrayIndex});
 				else {
-					if (name !== "length") console.warn("Object", obj, "property '" + name + "' is not configurable, change may not be detected");
+					if (name !== "length") api.console.warn("Object", obj, "property '" + name + "' is not configurable, change may not be detected");
 					prop.get = function() {return obj[name];};
 					prop.set = function(newValue) {if (newValue !== obj[name]) {obj[name] = newValue; prop.publish();}};
 				}
@@ -181,7 +179,7 @@
 			var desc = Object.getOwnPropertyDescriptor(obj, name);
 			if (!desc || desc.configurable) Object.defineProperty(obj, name, {get: prop.get, set: prop.set, enumerable: true, configurable: false});
 			else {
-				console.warn("Object", obj, "property '" + name + "' is not configurable, change may not be detected");
+				api.console.warn("Object", obj, "property '" + name + "' is not configurable, change may not be detected");
 				prop.get = function() {return obj[name];};
 				prop.set = function(newValue) {if (newValue !== obj[name]) {obj[name] = newValue; prop.publish();}};
 			}
@@ -682,7 +680,8 @@
 		notifyArrayChange: $.noop,
 		Binding: Binding,
 		BindingStore: BindingStore,
-		dataBind: dataBind
+		dataBind: dataBind,
+		console: window.console || {log: $.noop, warn: $.noop}
 	};
 	
 	$.fn.dataBind = function(data, context, bindingStore, debugInfo) {
@@ -696,10 +695,10 @@
 		var binding = new Binding("autoBind", prop, function() {
 			if (prop.get()) {
 				binding.unbind();
-				console.log("Auto binding document, to disable auto binding set dataBinder.autoBind to false");
+				api.console.log("Auto binding document, to disable auto binding set dataBinder.autoBind to false");
 				var startTime = new Date().getTime();
 				$(document.body).dataBind(window, window, null, ["document"]);
-				console.log("Finished binding document", new Date().getTime()-startTime, "ms");
+				api.console.log("Finished binding document", new Date().getTime()-startTime, "ms");
 			}
 		});
 		binding.bind();
