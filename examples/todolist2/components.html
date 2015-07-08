@@ -1,5 +1,5 @@
-<div data-class="Filters" class="todo-filters"
-	bind-param-filters="['All', 'Active', 'Completed']">
+<div data-view-name="Filters" class="todo-filters"
+	bind-var-filters="['All', 'Active', 'Completed']">
 	<span class="filter"
 		bind-repeater-i="#filters.length"
 		bind-statement-1="$(thisElem).toggleClass('active', #currentFilter == #filters[#i])"
@@ -8,9 +8,9 @@
 	</span>
 </div>
 
-<div data-class="TodoList" class="todo-list">
+<div data-view-name="TodoList" class="todo-list">
 	<h1>TODO</h1>
-	<div bind-template="Filters"
+	<div bind-view="Filters"
 		bind-param-current-filter="#currentFilter"
 		bind-event-set-filter="#currentFilter = event.data">
 	</div>
@@ -20,15 +20,16 @@
 				bind-event-keypress="if (event.which == 13) { this.addItem(thisElem.value); thisElem.value = ''; return false; }" />
 		</li>
 		<li bind-repeater-i="#filteredItems.length"
-			bind-template="TodoItem"
-			bind-param-text="#filteredItems[#i].text"
-			bind-param-completed="#filteredItems[#i].completed"
-			bind-param-edit-mode="#filteredItems[#i] == #editItem"
-			bind-event-start-edit="#editItem = #filteredItems[#i]"
+			bind-var-item="#filteredItems[#i]"
+			bind-view="TodoItem"
+			bind-param-text="#item.text"
+			bind-param-completed="#item.completed"
+			bind-param-edit-mode="#item == #editItem"
+			bind-event-start-edit="#editItem = #item"
 			bind-event-stop-edit="#editItem = null"
-			bind-event-set-completed="this.setCompleted(#filteredItems[#i], event.data)"
-			bind-event-set-text="this.setText(#filteredItems[#i], event.data)"
-			bind-event-delete-item="this.deleteItem(#filteredItems[#i])">
+			bind-event-set-completed="this.setCompleted(#item, event.data)"
+			bind-event-set-text="this.setText(#item, event.data)"
+			bind-event-delete-item="this.deleteItem(#item)">
 		</li>
 	</ul>
 	<div>{{#countActive}} things to do</div>
@@ -41,7 +42,7 @@
 	</div>
 </div>
 
-<li data-class="TodoItem" class="todo-item">
+<li data-view-name="TodoItem" class="todo-item">
 	<div class="delete-button"
 		bind-event-click="this.deleteItem()">X</div>
 	<input type="checkbox"

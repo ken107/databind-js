@@ -29,7 +29,7 @@
 		}
 	</style>
 	<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
-	<script src="https://rawgit.com/ken107/kenna-js/master/databind.js"></script>
+	<script src="../../databind.js"></script>
 	<script>
 		items = [];
 		editItem = null;
@@ -51,7 +51,7 @@
 				bind-event-keypress="if (event.which == 13) { #items.push({text: thisElem.value}); thisElem.value = ''; return false; }" />
 		</li>
 		<li bind-repeater-i="#items.length"
-			bind-param-item="#items[#i]"
+			bind-var-item="#items[#i]"
 			bind-statement-1="$(thisElem).toggle(#currentFilter == 'All' || #currentFilter == 'Active' && !#items[#i].completed || #currentFilter == 'Completed' && !!#items[#i].completed)">
 			<div class="delete-button"
 				bind-event-click="#items.splice(#items.indexOf(#item), 1)">X</div>

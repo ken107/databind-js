@@ -9,20 +9,16 @@
 	</style>
 	
 	<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
-	<script src="https://rawgit.com/ken107/kenna-js/master/databind.js"></script>
+	<script src="../../databind.js"></script>
 	<script src="https://rawgit.com/ken107/JSON-Patch/master/src/json-patch.js"></script>
 	<script src="../todolist2/components.js"></script>
 	<script>
 		//load components
-		dataBinder.templateInheritsData = false;
 		dataBinder.autoBind = false;
 		$("<div/>").load("../todolist2/components.html", function() {
 			$(this).children().each(function() {
-				var className = this.getAttribute("data-class");
-				if (className) {
-					this.setAttribute("bind-context", "new " + className + "(thisElem, data)");
-					dataBinder.templates[className] = this;
-				}
+				var viewName = $(this).data("viewName");
+				dataBinder.views[viewName] = {template: this, controller: window[viewName]};
 			});
 			dataBinder.autoBind = true;
 		});
@@ -44,7 +40,7 @@
 	</script>
 </head>
 <body>
-	<div bind-template="TodoList"
+	<div bind-view="TodoList"
 		bind-param-items="#items"
 		bind-event-add-item="action('addItem', [event.data])"
 		bind-event-delete-item="action('deleteItem', [#items.indexOf(event.data)])"

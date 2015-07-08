@@ -1,21 +1,22 @@
-function Filters(elem, data) {
+function Filters(elem) {
 	this.setFilter = function(filter) {
 		$(elem).triggerHandler('setFilter', filter);
 	}
 }
 
-function TodoList(elem, data) {
-	data.filteredItems = null;
-	data.currentFilter = 'All';
-	data.editItem = null;
-	data.countActive = null;
+function TodoList(elem) {
+	this.filteredItems = null;
+	this.currentFilter = 'All';
+	this.editItem = null;
+	this.countActive = null;
 	this.update = function() {
-		data.filteredItems = data.items.filter(function(item) {
-			return data.currentFilter == 'All' ||
-				data.currentFilter == 'Active' && !item.completed ||
-				data.currentFilter == 'Completed' && !!item.completed;
+		var self = this;
+		this.filteredItems = this.items.filter(function(item) {
+			return self.currentFilter == 'All' ||
+				self.currentFilter == 'Active' && !item.completed ||
+				self.currentFilter == 'Completed' && !!item.completed;
 		});
-		data.countActive = data.items.filter(function(item) {
+		this.countActive = this.items.filter(function(item) {
 			return !item.completed;
 		}).length;
 	}
@@ -33,7 +34,7 @@ function TodoList(elem, data) {
 	}
 }
 
-function TodoItem(elem, data) {
+function TodoItem(elem) {
 	this.deleteItem = function() {
 		$(elem).triggerHandler('deleteItem');
 	}

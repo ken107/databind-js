@@ -73,21 +73,21 @@
 	};
 	
 	function getDirectives(node) {
-		var dirs = {params: [], statements: [], events: []};
+		var dirs = {params: [], vars: [], statements: [], events: []};
 		var toRemove = [];
 		for (var i=0; i<node.attributes.length; i++) {
 			var attr = node.attributes[i];
 			if (attr.specified) {
-				if (attr.name == api.directives.bindTemplate) {
-					dirs.template = attr.value;
-					toRemove.push(attr.name);
-				}
-				else if (attr.name == api.directives.bindContext) {
-					dirs.context = attr.value;
+				if (attr.name == api.directives.bindView) {
+					dirs.view = attr.value;
 					toRemove.push(attr.name);
 				}
 				else if (attr.name.lastIndexOf(api.directives.bindParameter,0) == 0) {
 					dirs.params.push({name: toCamelCase(attr.name.substr(api.directives.bindParameter.length)), value: attr.value});
+					toRemove.push(attr.name);
+				}
+				else if (attr.name.lastIndexOf(api.directives.bindVariable,0) == 0) {
+					dirs.vars.push({name: toCamelCase(attr.name.substr(api.directives.bindVariable.length)), value: attr.value});
 					toRemove.push(attr.name);
 				}
 				else if (attr.name.lastIndexOf(api.directives.bindStatement,0) == 0) {
@@ -560,26 +560,22 @@
 					bindingStore.bindings.push(binding);
 			}
 			else {
-				var extendedData = null;
-				if (dirs.template) {
-					var templateName = dirs.template;
-					if (!api.templates[templateName]) {
+				if (dirs.view) {
+					var viewName = dirs.view;
+					if (!api.views[viewName]) {
 						printDebug(debugInfo);
-						throw new Error("Template not found (" + templateName + ")");
+						throw new Error("View not found (" + viewName + ")");
 					}
-					var newNode = api.templates[templateName].cloneNode(true);
+					var newNode = api.views[viewName].template.cloneNode(true);
 					node.parentNode.replaceChild(newNode, node);
 					node = newNode;
-					if (!api.templateInheritsData) extendedData = {};
-					if (dirs.context) {
-						var prop = evalExpr(dirs.context, data, context, {thisElem: node}, debugInfo);
-						context = prop.get();
-					}
-					for (var i=0; i<dirs.params.length; i++) {
+					var extendedData = null;
+					for (var i=0; i<dirs.vars.length; i++) {
 							if (!extendedData) extendedData = extend(data);
-							var prop = evalExpr(dirs.params[i].value, data, context, {thisElem: node}, debugInfo);
-							bindParam(extendedData, dirs.params[i].name, dirs.params[i].value, prop, bindingStore);
+							var prop = evalExpr(dirs.vars[i].value, data, context, {thisElem: node}, debugInfo);
+							bindParam(extendedData, dirs.vars[i].name, dirs.vars[i].value, prop, bindingStore);
 						}
+					if (extendedData) data = extendedData;
 					for (var i=0; i<dirs.statements.length; i++) {
 							var prop = evalExpr(dirs.statements[i].value, data, context, {thisElem: node}, debugInfo);
 							var binding = new Binding(dirs.statements[i].value, prop, prop.get);
@@ -597,27 +593,23 @@
 								return prop.get();
 							});
 						}
-					if (extendedData) {
-						data = extendedData;
-						extendedData = null;
-					}
-					debugInfo = debugInfo.concat(templateName);
+					var newContext = new api.views[viewName].controller(node);
+					for (var i=0; i<dirs.params.length; i++) {
+							var prop = evalExpr(dirs.params[i].value, data, context, {thisElem: node}, debugInfo);
+							bindParam(newContext, dirs.params[i].name, dirs.params[i].value, prop, bindingStore);
+						}
+					data = context = newContext;
+					debugInfo = debugInfo.concat(viewName);
 					if (api.onDataBinding) api.onDataBinding(node);
 					dirs = getDirectives(node);
 				}
-				if (dirs.context) {
-					var prop = evalExpr(dirs.context, data, context, {thisElem: node}, debugInfo);
-					context = prop.get();
-				}
-				for (var i=0; i<dirs.params.length; i++) {
+				var extendedData = null;
+				for (var i=0; i<dirs.vars.length; i++) {
 						if (!extendedData) extendedData = extend(data);
-						var prop = evalExpr(dirs.params[i].value, data, context, {thisElem: node}, debugInfo);
-						bindParam(extendedData, dirs.params[i].name, dirs.params[i].value, prop, bindingStore);
+						var prop = evalExpr(dirs.vars[i].value, data, context, {thisElem: node}, debugInfo);
+						bindParam(extendedData, dirs.vars[i].name, dirs.vars[i].value, prop, bindingStore);
 					}
-				if (extendedData) {
-					data = extendedData;
-					extendedData = null;
-				}
+				if (extendedData) data = extendedData;
 				for (var i=0; i<dirs.statements.length; i++) {
 						var prop = evalExpr(dirs.statements[i].value, data, context, {thisElem: node}, debugInfo);
 						var binding = new Binding(dirs.statements[i].value, prop, prop.get);
@@ -671,17 +663,17 @@
 	 */
 	var api = window.dataBinder = {
 		directives: {				//you can change the names of the binding directives by modifying this object
-			bindTemplate: "bind-template",
-			bindContext: "bind-context",
+			bindView: "bind-view",
 			bindParameter: "bind-param-",
+			bindVariable: "bind-var-",
 			bindStatement: "bind-statement-",
 			bindEvent: "bind-event-",
 			bindRepeater: "bind-repeater-"
 		},
-		templates: {},				//populate this field with your templates, may need to turn off autoBind and turn it back on after templates finish loading
+		views: {},					//declare your views, name->value where value={template: anHtmlTemplate, controller: function(rootElementOfView)}
+									//if you load your templates asynchronously, you will need to turn off autoBind and turn it back on once they're ready
 		onDataBinding: null,		//set this to a function that will be called before each node is bound, you can use this to process custom directives
 		autoBind: true,				//if true, automatically dataBind the entire document as soon as it is ready
-		templateInheritsData: true,	//if false, template will inherit no data from parent, any data must be passed in using bind-param
 		repeaterCacheTTL: 300000,	//removed repeater items are kept in a cache for reuse, the cache is cleared if it is not accessed within the TTL
 		timerInterval: 30000,		//granularity of the internal timer
 		evalExpr: evalExpr,			//process a binding expression and return a Property object
@@ -695,9 +687,9 @@
 		console: window.console || {log: $.noop, warn: $.noop}
 	};
 	
-	$.fn.dataBind = function(data, context, bindingStore, debugInfo) {
+	$.fn.dataBind = function(context, bindingStore, debugInfo) {
 		return this.each(function() {
-			dataBind(this, data, context, bindingStore||new BindingStore(), debugInfo||[]);
+			dataBind(this, context, context, bindingStore||new BindingStore(), debugInfo||[]);
 		});
 	};
 	
@@ -708,7 +700,7 @@
 				binding.unbind();
 				api.console.log("Auto binding document, to disable auto binding set dataBinder.autoBind to false");
 				var startTime = new Date().getTime();
-				$(document.body).dataBind(window, window, null, ["document"]);
+				$(document.body).dataBind(window, null, ["document"]);
 				api.console.log("Finished binding document", new Date().getTime()-startTime, "ms");
 			}
 		});

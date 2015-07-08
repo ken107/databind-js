@@ -1,6 +1,6 @@
 {
   "name": "kenna",
-  "version": "0.0.5",
+  "version": "0.1.0",
   "description": "Not another MVC framework",
   "keywords": ["mvc", "model", "view", "controller", "data", "binding", "template", "component", "framework"],
   "homepage": "http://kenna-js.com",

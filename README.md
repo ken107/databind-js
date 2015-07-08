@@ -4,7 +4,7 @@ The view framework was created with uncompromising goals.  It allows you to:
 * Bind to arbitrary nodes in an object tree
 * Use your binding in arbitrarily complex JavaScript expressions
 * Declare your binding expressions directly in HTML, on the affected element
-* Easily define reusable view templates or components that integrates seamlessly with data-binding semantics
+* Easily define reusable views (components) that integrate seamlessly with data-binding semantics
 * Do all the above with the absolute minimal set of new directives and syntax that you'll have to learn
 * Easily customize and extend the framework
 
@@ -81,72 +81,55 @@ The special variable `event` contains the JQuery event object.
 http://jsfiddle.net/8s2tbmcx/1/
 
 
-#### Bind-Param Directive
+#### Bind-Var Directive
 ```html
 <div bind-repeater-i="#todos.length"
-	bind-param-todo="#todos[#i]">
-	{{#todo.text}}
+	bind-var-item="#todos[#i]"
+	bind-statement-1="$(thisElem).toggle(!(#item.done && #hideInactive))">
+	{{#item.text}}
 </div>
 ```
 
-Here is the complete TodoList example.  Notice how little you have had to learn in order to build this, compared to other frameworks.  And you built it without any code-behind, in other words 100% declarative!  You can build complex apps with just the above 4 directives.
+Here is the complete TodoList example.  Notice how little you have had to learn in order to build this, compared to other frameworks.  And it's built without any code-behind, in other words 100% declarative!  You can build complex apps with just the above 4 directives.
 
 http://rawgit.com/ken107/kenna-js/master/examples/todolist/todo.html
 
 
-#### Bind-Context Directive
-```html
-function TodoList(elem, data) {
-	this.deleteItem = function(index) {
-		data.todos.splice(index,1);
-	};
-	this.toTitleCase = function(text) {...};
-}
-
-<div bind-context="new TodoList(thisElem, data)">
-	<div bind-repeater-i="#todos.length">
-		{{this.toTitleCase(#todos[#i].text)}}
-		<div class="delete-button" bind-event-click="this.deleteItem(#i)" />
-	</div>
-</div>
-```
-
-
-#### Bind-Template Directive
+#### Bind-View & Bind-Param Directives
 ```html
 <div>
-	<div bind-template="LoginForm"></div>
+	<div bind-view="MessageBox" bind-param-name="#myName"></div>
 </div>
 ```
 
-The inner div will be replaced by the template named _LoginForm_.  Register your templates with the global `dataBinder` object:
+The inner div will be replaced by the view named _MessageBox_.  Declare your views with the global `dataBinder` object:
 ```javascript
-dataBinder.templates = {
-	LoginForm: ...
+dataBinder.views = {
+	MessageBox: {
+		template: $("<div class='message-box' bind-event-click='this.close()'>{{#greet+this.toTitleCase(#name)}}</div>").get(0),
+		controller: function(elem) {
+			this.greet = "Hello, ";
+			this.toTitleCase = function(text) {...};
+			this.close = function() {$(elem).hide()};
+		}
+	}
 }
 ```
 
-Usually you probably load your templates from an external file, in which case you need to turn autoBind off and turn it back on once your templates have been loaded:
-```javascript
-dataBinder.autoBind = false;
-loadMyTemplates(function onComplete(myTemplates) {
-	dataBinder.templates = myTemplates;
-	dataBinder.autoBind = true;
-});
-```
+You use the bind-param directive to pass data into your view.  Usually you load your templates from an external file, in which case you need to turn `autoBind` off and turn it back on after they're loaded.  See the following example for how to do that.
 
-The `bind-template` and `bind-context` directives together allow you to build reusable [view components](https://github.com/ken107/kenna-js/wiki/Advanced).
+http://rawgit.com/ken107/kenna-js/master/examples/todolist2/todo.html
 
 
 ### ADVANCED
 
-See the [wiki](https://github.com/ken107/kenna-js/wiki/Advanced).
+View the [wiki](https://github.com/ken107/kenna-js/wiki/Advanced) to learn about advanced functions such as defining custom directives, changing the names of binding directives, or calling dataBind manually.
 
 
 # The Model
-The supermodel.js is a Node app that provides MVC-Model as a service.  In your MVC application, you may have parts of the model reside on the server and synchronized to the clients.  For example, in an MVC chat application, your chat log resides on the server.  Each chat client keeps a copy of the chat log that is kept synchronized with the server via a PUB/SUB mechanism.  The controller, which reside on the server, receives new chat messages from clients and append them to the chat log.
+The supermodel.js is a Node app that provides MVC-Model as a service.  You use this to host a model that is shared between your clients.  For example, in an MVC chat application, your chat log resides on the server.  Each chat client keeps a copy of the chat log that is kept synchronized with the server via a PUB/SUB mechanism.  The controller, residing on the server, receives new chat messages from clients and append them to the chat log.
 
-Note the difference with an Angular-Firebase solution, where your controller resides with the views.  Kenna believes that the controller naturally should reside with the part of the model which it controls.  The benefits include server-side validation and better concurrency control.
+Note the difference with an Angular-Firebase solution, where the controller resides with the view.  Kenna believes that the controller naturally should reside with the part of the model which it controls.  Benefits include server-side validation and better concurrency control.
 ```
   Usage: supermodel [options] <controller.js>
 
@@ -228,4 +211,4 @@ npm install
 node supermodel.js examples/sharedtodolist/todo_controller.js
 ```
 
-Then open the file examples/sharedtodolist/todo.html in two or more browser windows.  If you use Chrome, you must run a local web server because Chrome does not allow AJAX over file:// URL.  This example reuses the TodoList components from the todolist2 example.
+Then open the file examples/sharedtodolist/todo.html in two or more browser windows.  If you use Chrome, you must run a local web server because Chrome does not allow AJAX over file:// URL.  This example reuses the TodoList view from the todolist2 example.
