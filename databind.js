@@ -16,16 +16,6 @@
 		/;\s*\S|^\s*if\b/,
 		/^\d+$/
 	];
-	
-	var directives = {
-		bindTemplate: "bind-template",
-		bindContext: "bind-context",
-		bindParameter: "bind-param-",
-		bindStatement: "bind-statement-",
-		bindEvent: "bind-event-",
-		bindRepeater: "bind-repeater-"
-	};
-	
 	var propPrefix = "__prop__";
 	var exprCache = {};
 	
@@ -82,13 +72,41 @@
 		};
 	};
 	
-	function getAttrs(node) {
-		var attrs = {};
+	function getDirectives(node) {
+		var dirs = {params: [], statements: [], events: []};
+		var toRemove = [];
 		for (var i=0; i<node.attributes.length; i++) {
 			var attr = node.attributes[i];
-			if (attr.specified) attrs[attr.name] = attr.value;
+			if (attr.specified) {
+				if (attr.name == api.directives.bindTemplate) {
+					dirs.template = attr.value;
+					toRemove.push(attr.name);
+				}
+				else if (attr.name == api.directives.bindContext) {
+					dirs.context = attr.value;
+					toRemove.push(attr.name);
+				}
+				else if (attr.name.lastIndexOf(api.directives.bindParameter,0) == 0) {
+					dirs.params.push({name: toCamelCase(attr.name.substr(api.directives.bindParameter.length)), value: attr.value});
+					toRemove.push(attr.name);
+				}
+				else if (attr.name.lastIndexOf(api.directives.bindStatement,0) == 0) {
+					dirs.statements.push({value: attr.value});
+					toRemove.push(attr.name);
+				}
+				else if (attr.name.lastIndexOf(api.directives.bindEvent,0) == 0) {
+					dirs.events.push({name: toCamelCase(attr.name.substr(api.directives.bindEvent.length)), value: attr.value});
+					toRemove.push(attr.name);
+				}
+				else if (attr.name.lastIndexOf(api.directives.bindRepeater,0) == 0) {
+					dirs.repeater = {name: toCamelCase(attr.name.substr(api.directives.bindRepeater.length)), value: attr.value};
+					toRemove = [attr.name];
+					break;
+				}
+			}
 		}
-		return attrs;
+		for (var i=0; i<toRemove.length; i++) node.removeAttribute(toRemove[i]);
+		return dirs;
 	}
 	
 	function toCamelCase(str) {
@@ -528,16 +546,11 @@
 	function dataBind(node, data, context, bindingStore, debugInfo) {
 		if (node.nodeType == 1) {
 			if (api.onDataBinding) api.onDataBinding(node);
-			var attrs = getAttrs(node);
-			var isRepeater = false;
-			for (var attrName in attrs) {
-				var attrValue = attrs[attrName];
-				if (attrName.lastIndexOf(directives.bindRepeater, 0) === 0) {
-					isRepeater = true;
-					node.removeAttribute(attrName);
-					var repeater = new Repeater(toCamelCase(attrName.substr(directives.bindRepeater.length)), node, data, context, debugInfo);
-					var prop = evalExpr(attrValue, data, context, null, debugInfo);
-					var binding = new Binding(attrValue, prop, function() {
+			var dirs = getDirectives(node);
+			if (dirs.repeater) {
+					var repeater = new Repeater(dirs.repeater.name, node, data, context, debugInfo);
+					var prop = evalExpr(dirs.repeater.value, data, context, null, debugInfo);
+					var binding = new Binding(dirs.repeater.value, prop, function() {
 						repeater.update(prop.get());
 					},
 					function() {
@@ -545,12 +558,11 @@
 					});
 					binding.bind();
 					bindingStore.bindings.push(binding);
-				}
 			}
-			if (!isRepeater) {
+			else {
 				var extendedData = null;
-				if (attrs[directives.bindTemplate]) {
-					var templateName = attrs[directives.bindTemplate];
+				if (dirs.template) {
+					var templateName = dirs.template;
 					if (!api.templates[templateName]) {
 						printDebug(debugInfo);
 						throw new Error("Template not found (" + templateName + ")");
@@ -559,28 +571,25 @@
 					node.parentNode.replaceChild(newNode, node);
 					node = newNode;
 					if (!api.templateInheritsData) extendedData = {};
-					if (attrs[directives.bindContext]) {
-						var prop = evalExpr(attrs[directives.bindContext], data, context, {thisElem: node}, debugInfo);
+					if (dirs.context) {
+						var prop = evalExpr(dirs.context, data, context, {thisElem: node}, debugInfo);
 						context = prop.get();
 					}
-					for (var attrName in attrs) {
-						var attrValue = attrs[attrName];
-						if (attrName.lastIndexOf(directives.bindParameter, 0) === 0) {
+					for (var i=0; i<dirs.params.length; i++) {
 							if (!extendedData) extendedData = extend(data);
-							var paramName = toCamelCase(attrName.substr(directives.bindParameter.length));
-							var prop = evalExpr(attrValue, data, context, {thisElem: node}, debugInfo);
-							bindParam(extendedData, paramName, attrValue, prop, bindingStore);
+							var prop = evalExpr(dirs.params[i].value, data, context, {thisElem: node}, debugInfo);
+							bindParam(extendedData, dirs.params[i].name, dirs.params[i].value, prop, bindingStore);
 						}
-						else if (attrName.lastIndexOf(directives.bindStatement, 0) === 0) {
-							var prop = evalExpr(attrValue, data, context, {thisElem: node}, debugInfo);
-							var binding = new Binding(attrValue, prop, prop.get);
+					for (var i=0; i<dirs.statements.length; i++) {
+							var prop = evalExpr(dirs.statements[i].value, data, context, {thisElem: node}, debugInfo);
+							var binding = new Binding(dirs.statements[i].value, prop, prop.get);
 							binding.bind();
 							bindingStore.bindings.push(binding);
 						}
-						else if (attrName.lastIndexOf(directives.bindEvent, 0) === 0) {
+					for (var i=0; i<dirs.events.length; i++) {
 							var scope = {thisElem: node, event: null};
-							var prop = evalExpr(attrValue, data, context, scope, debugInfo);
-							$(node).on(attrName.substr(directives.bindEvent.length), [scope, prop], function(event) {
+							var prop = evalExpr(dirs.events[i].value, data, context, scope, debugInfo);
+							$(node).on(dirs.events[i].name, [scope, prop], function(event) {
 								var scope = event.data[0];
 								var prop = event.data[1];
 								event.data = arguments.length > 2 ? Array.prototype.slice.call(arguments, 1) : arguments[1];
@@ -588,41 +597,37 @@
 								return prop.get();
 							});
 						}
-					}
 					if (extendedData) {
 						data = extendedData;
 						extendedData = null;
 					}
 					debugInfo = debugInfo.concat(templateName);
 					if (api.onDataBinding) api.onDataBinding(node);
-					attrs = getAttrs(node);
+					dirs = getDirectives(node);
 				}
-				if (attrs[directives.bindContext]) {
-					node.removeAttribute(directives.bindContext);
-					var prop = evalExpr(attrs[directives.bindContext], data, context, {thisElem: node}, debugInfo);
+				if (dirs.context) {
+					var prop = evalExpr(dirs.context, data, context, {thisElem: node}, debugInfo);
 					context = prop.get();
 				}
-				for (var attrName in attrs) {
-					var attrValue = attrs[attrName];
-					if (attrName.lastIndexOf(directives.bindParameter, 0) === 0) {
-						node.removeAttribute(attrName);
+				for (var i=0; i<dirs.params.length; i++) {
 						if (!extendedData) extendedData = extend(data);
-						var paramName = toCamelCase(attrName.substr(directives.bindParameter.length));
-						var prop = evalExpr(attrValue, data, context, {thisElem: node}, debugInfo);
-						bindParam(extendedData, paramName, attrValue, prop, bindingStore);
+						var prop = evalExpr(dirs.params[i].value, data, context, {thisElem: node}, debugInfo);
+						bindParam(extendedData, dirs.params[i].name, dirs.params[i].value, prop, bindingStore);
 					}
-					else if (attrName.lastIndexOf(directives.bindStatement, 0) === 0) {
-						node.removeAttribute(attrName);
-						var prop = evalExpr(attrValue, data, context, {thisElem: node}, debugInfo);
-						var binding = new Binding(attrValue, prop, prop.get);
+				if (extendedData) {
+					data = extendedData;
+					extendedData = null;
+				}
+				for (var i=0; i<dirs.statements.length; i++) {
+						var prop = evalExpr(dirs.statements[i].value, data, context, {thisElem: node}, debugInfo);
+						var binding = new Binding(dirs.statements[i].value, prop, prop.get);
 						binding.bind();
 						bindingStore.bindings.push(binding);
 					}
-					else if (attrName.lastIndexOf(directives.bindEvent, 0) === 0) {
-						node.removeAttribute(attrName);
+				for (var i=0; i<dirs.events.length; i++) {
 						var scope = {thisElem: node, event: null};
-						var prop = evalExpr(attrValue, data, context, scope, debugInfo);
-						$(node).on(attrName.substr(directives.bindEvent.length), [scope, prop], function(event) {
+						var prop = evalExpr(dirs.events[i].value, data, context, scope, debugInfo);
+						$(node).on(dirs.events[i].name, [scope, prop], function(event) {
 							var scope = event.data[0];
 							var prop = event.data[1];
 							event.data = arguments.length > 2 ? Array.prototype.slice.call(arguments, 1) : arguments[1];
@@ -630,11 +635,10 @@
 							return prop.get();
 						});
 					}
-				}
 				var child = node.firstChild;
 				while (child) {
 					var nextSibling = child.nextSibling;
-					if (child.nodeType == 1 || child.nodeType == 3 && child.nodeValue.indexOf('{{') != -1) dataBind(child, extendedData||data, context, bindingStore, debugInfo);
+					if (child.nodeType == 1 || child.nodeType == 3 && child.nodeValue.indexOf('{{') != -1) dataBind(child, data, context, bindingStore, debugInfo);
 					child = nextSibling;
 				}
 			}
@@ -666,7 +670,14 @@
 	 * API
 	 */
 	var api = window.dataBinder = {
-		directives: directives,		//you can change the names of the binding directives by modifying this object
+		directives: {				//you can change the names of the binding directives by modifying this object
+			bindTemplate: "bind-template",
+			bindContext: "bind-context",
+			bindParameter: "bind-param-",
+			bindStatement: "bind-statement-",
+			bindEvent: "bind-event-",
+			bindRepeater: "bind-repeater-"
+		},
 		templates: {},				//populate this field with your templates, may need to turn off autoBind and turn it back on after templates finish loading
 		onDataBinding: null,		//set this to a function that will be called before each node is bound, you can use this to process custom directives
 		autoBind: true,				//if true, automatically dataBind the entire document as soon as it is ready

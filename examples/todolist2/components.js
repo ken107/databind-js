@@ -1,6 +1,6 @@
 function Filters(elem, data) {
 	this.setFilter = function(filter) {
-		$(elem).triggerHandler('set-filter', filter);
+		$(elem).triggerHandler('setFilter', filter);
 	}
 }
 
@@ -20,33 +20,33 @@ function TodoList(elem, data) {
 		}).length;
 	}
 	this.deleteItem = function(item) {
-		$(elem).triggerHandler('delete-item', item);
+		$(elem).triggerHandler('deleteItem', item);
 	}
 	this.addItem = function(text) {
-		$(elem).triggerHandler('add-item', text);
+		$(elem).triggerHandler('addItem', text);
 	}
 	this.setCompleted = function(item, completed) {
-		$(elem).triggerHandler('set-completed', {item: item, completed: completed});
+		$(elem).triggerHandler('setCompleted', {item: item, completed: completed});
 	}
 	this.setText = function(item, text) {
-		$(elem).triggerHandler('set-text', {item, item, text: text});
+		$(elem).triggerHandler('setText', {item, item, text: text});
 	}
 }
 
 function TodoItem(elem, data) {
 	this.deleteItem = function() {
-		$(elem).triggerHandler('delete-item');
+		$(elem).triggerHandler('deleteItem');
 	}
 	this.setCompleted = function(completed) {
-		$(elem).triggerHandler('set-completed', completed);
+		$(elem).triggerHandler('setCompleted', completed);
 	}
 	this.setText = function(text) {
-		$(elem).triggerHandler('set-text', text);
+		$(elem).triggerHandler('setText', text);
 	}
 	this.startEdit = function() {
-		$(elem).triggerHandler('start-edit')
+		$(elem).triggerHandler('startEdit')
 	}
 	this.stopEdit = function() {
-		$(elem).triggerHandler('stop-edit');
+		$(elem).triggerHandler('stopEdit');
 	}
 }
