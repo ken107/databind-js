@@ -27,6 +27,12 @@
 	</script>
 </head>
 <body>
+	<!--
+	This example demonstrates proper component design.  Parent view distributes data to its children, and child views propagates events up the parent chain to be handled.  Files:
+		* components.html:  view templates
+		* components.js:  controller classes
+		* components.css:  styles
+	-->
 	<div bind-view="TodoList"
 		bind-param-items="#items"
 		bind-event-add-item="#items.push({text: event.data})"

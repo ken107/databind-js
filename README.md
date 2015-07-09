@@ -85,8 +85,8 @@ http://jsfiddle.net/8s2tbmcx/1/
 ```html
 <div bind-repeater-i="#todos.length"
 	bind-var-item="#todos[#i]"
-	bind-statement-1="$(thisElem).toggle(!(#item.done && #hideInactive))">
-	{{#item.text}}
+	bind-var-status="#todos[#i].done ? 'completed' : 'active'">
+	{{#item.text}} is {{#status}}
 </div>
 ```
 
@@ -98,15 +98,15 @@ http://rawgit.com/ken107/kenna-js/master/examples/todolist/todo.html
 #### Bind-View & Bind-Param Directives
 ```html
 <div>
-	<div bind-view="MessageBox" bind-param-name="#myName"></div>
+	<div bind-view="Greeting" bind-param-name="#myName"></div>
 </div>
 ```
 
-The inner div will be replaced by the view named _MessageBox_.  Declare your views with the global `dataBinder` object:
+The inner div will be replaced by the view named _Greeting_.  Declare your views with the global `dataBinder` object:
 ```javascript
 dataBinder.views = {
-	MessageBox: {
-		template: $("<div class='message-box' bind-event-click='this.close()'>{{#greet+this.toTitleCase(#name)}}</div>").get(0),
+	Greeting: {
+		template: $("<div bind-event-click='this.close()'>{{#greet+this.toTitleCase(#name)}}</div>").get(0),
 		controller: function(elem) {
 			this.greet = "Hello, ";
 			this.toTitleCase = function(text) {...};
