@@ -1,6 +1,6 @@
 {
   "name": "kenna",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Not another MVC framework",
   "keywords": ["mvc", "model", "view", "controller", "data", "binding", "template", "component", "framework"],
   "homepage": "http://kenna-js.com",
@@ -20,7 +20,7 @@
   ],
   "dependencies": {
     "commander": "^2.8.1",
-    "jsonpatch-observe": "^0.0.2",
+    "jsonpatch-observe": "^0.0.4",
     "jsonpointer": "^1.1.0",
     "ws": "^0.7.1"
   },

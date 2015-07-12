@@ -10,6 +10,8 @@
 	
 	<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
 	<script src="../../databind.js"></script>
+	<!-- here we use a fork of Starcounter-Jack's JSONPatch library that supports the non-standard "splice" op
+		use this if you expect to insert/remove large number of array elements and are concerned about performance -->
 	<script src="https://rawgit.com/ken107/JSON-Patch/master/src/json-patch.js"></script>
 	<script src="../todolist2/components.js"></script>
 	<script>
@@ -28,7 +30,8 @@
 		
 		var ws = new (WebSocket || MozWebSocket)("ws://localhost:8080/todo");
 		ws.onopen = function() {
-			ws.send(JSON.stringify({cmd: "SUB", pointers: ["/items"]}));
+			//specify that we can handle the non-standard "splice" op
+			ws.send(JSON.stringify({cmd: "SUB", pointers: ["/items"], canSplice: true}));
 		};
 		ws.onmessage = function(e) {
 			var m = eval('(' + e.data + ')');

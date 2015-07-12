@@ -56,7 +56,7 @@ wss.on("connection", function(ws) {
 			if (!m.cmd) throw "Missing param 'cmd'";
 			if (m.cmd === "SUB") {
 				if (!m.pointers) throw "Missing param 'pointers'";
-				(m.pointers instanceof Array ? m.pointers : [m.pointers]).forEach(subscribe);
+				(m.pointers instanceof Array ? m.pointers : [m.pointers]).forEach(subscribe.bind(null, m.canSplice));
 			}
 			else if (m.cmd === "UNSUB") {
 				if (!m.pointers) throw "Missing param 'pointers'";
@@ -77,7 +77,7 @@ wss.on("connection", function(ws) {
 	ws.on("close", function() {
 		for (var pointer in subscriptions) subscriptions[pointer].cancel();
 	});
-	function subscribe(pointer) {
+	function subscribe(canSplice, pointer) {
 		if (pointer == "") throw "Cannot subscribe to the root model object";
 		if (subscriptions[pointer]) subscriptions[pointer].count++;
 		else {
@@ -87,7 +87,7 @@ wss.on("connection", function(ws) {
 				return;
 			}
 			sendPatches([{op: "replace", path: pointer, value: o}]);
-			subscriptions[pointer] = observe(o, sendPatches, pointer);
+			subscriptions[pointer] = observe(o, sendPatches, pointer, canSplice);
 			subscriptions[pointer].count = 1;
 		}
 	}
