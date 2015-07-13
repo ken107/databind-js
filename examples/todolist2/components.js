@@ -5,20 +5,13 @@ function Filters(elem) {
 }
 
 function TodoList(elem) {
-	this.filteredItems = null;
 	this.currentFilter = 'All';
 	this.editItem = null;
-	this.countActive = null;
-	this.update = function() {
-		var self = this;
-		this.filteredItems = this.items.filter(function(item) {
-			return self.currentFilter == 'All' ||
-				self.currentFilter == 'Active' && !item.completed ||
-				self.currentFilter == 'Completed' && !!item.completed;
-		});
-		this.countActive = this.items.filter(function(item) {
-			return !item.completed;
-		}).length;
+	this.updateFlag = 0;
+	this.filterFunc = function(item) {
+		return this.currentFilter == 'All' ||
+			this.currentFilter == 'Active' && !item.completed ||
+			this.currentFilter == 'Completed' && !!item.completed;
 	}
 	this.deleteItem = function(item) {
 		$(elem).triggerHandler('deleteItem', item);

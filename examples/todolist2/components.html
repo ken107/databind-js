@@ -14,7 +14,7 @@
 		bind-param-current-filter="#currentFilter"
 		bind-event-set-filter="#currentFilter = event.data">
 	</div>
-	<ul>
+	<ul bind-var-filtered-items="#updateFlag, #items.filter($.proxy(this.filterFunc, this))">
 		<li>
 			<input type="text" placeholder="What to do?"
 				bind-event-keypress="if (event.which == 13) { this.addItem(thisElem.value); thisElem.value = ''; return false; }" />
@@ -32,13 +32,15 @@
 			bind-event-delete-item="this.deleteItem(#item)">
 		</li>
 	</ul>
-	<div>{{#countActive}} things to do</div>
+	<div>
+		{{#updateFlag, #items.filter(function(item) {return !item.completed}).length || "No"}} things to do
+	</div>
 	<!-- the following detects when items are added/deleted, when their completed state change,
-		or when the selected filter changes, and refresh the filtered item list and active count
+		or when the selected filter changes, and set the updateFlag
 	-->
-	<div bind-statement-1="#items.length, #currentFilter, this.update()">
+	<div bind-statement-1="#items.length, #currentFilter, #updateFlag++">
 		<div bind-repeater-i="#items.length"
-			bind-statement-1="#items[#i].completed, this.update()"></div>
+			bind-statement-1="#items[#i].completed, #updateFlag++"></div>
 	</div>
 </div>
 

@@ -1,5 +1,6 @@
-# The View
-The view framework was created with uncompromising goals.  It allows you to:
+# Why
+How is this better than Angular, React, or Backbone?  Kenna is not derived from, or inspired by, any other framework.  It was built from the ground up and takes a completely different approach to data-binding, with strong emphasis on minimalism and simplicity.  The view framework was created with uncompromising goals, it allows you to:
+
 * Bind to data anywhere, your window object is the model
 * Bind to arbitrary nodes in an object tree
 * Use your binding in arbitrarily complex JavaScript expressions
@@ -8,8 +9,10 @@ The view framework was created with uncompromising goals.  It allows you to:
 * Do all the above with the absolute minimal set of new directives and syntax that you'll have to learn
 * Easily customize and extend the framework
 
+Give it 15 minutes and decide for yourself.
 
-### USAGE
+
+# The View
 Simply include JQuery and databind.js, and you're ready to go.
 ```html
 <script src="http://cdn.rawgit.com/ken107/kenna-js/master/databind.js"></script>
@@ -62,9 +65,9 @@ http://jsfiddle.net/p9s1yjqc/
 </div>
 ```
 
-The bind-statement directive is the Swiss-army knife of data binding.  You use it to alter the appearance of the bound element depending on the value of some data source.
+The bind-statement directive lets you execute a JavaScript statement (e.g. manipulate the DOM) whenever your data changes.  The special variable `thisElem` points to the current element.
 
-The special variable `thisElem` point to the current element.  The statement-_id_ can be any string, it is there only to make the attribute name unique, as required by HTML.  You may want to use a descriptive string as the id, for example: `bind-statement-strike-done` or `bind-statement-hide-inactive`.
+The statement-_id_ can be any string, it is there only to make the attribute name unique, as required by HTML.  You may want to use a descriptive string as the _id_, for example: `bind-statement-strike-done` or `bind-statement-hide-inactive`.
 
 
 #### Bind-Event Directive
@@ -90,7 +93,7 @@ http://jsfiddle.net/8s2tbmcx/1/
 </div>
 ```
 
-Here is the complete TodoList example.  Notice how little you have had to learn in order to build this, compared to other frameworks.  And it's built without any code-behind, in other words 100% declarative!  You can build complex apps with just the above 4 directives.
+Here is the complete TodoList example.  Notice how little you have had to learn in order to build this.  And it's built without any JavaScript code behind!  You can build complex apps with just the above 4 directives.
 
 http://rawgit.com/ken107/kenna-js/master/examples/todolist/todo.html
 
