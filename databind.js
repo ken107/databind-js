@@ -158,15 +158,18 @@
 	}
 	
 	function extend(data) {
-		function Wrapper() {}
-		Wrapper.prototype = data;
-		return Object.defineProperty(new Wrapper(), "__extends__", {value: data, writable: false, enumerable: false, configurable: false});
+		return {__extends__: data};
 	}
 	
-	function getProp(obj, name, onlyIfExist) {
+	function getPropExt(obj, name) {
 		if (obj[propPrefix+name]) return obj[propPrefix+name];
-		else if (obj.__extends__) return obj.hasOwnProperty(name) ? convertToProperty(obj, name) : getProp(obj.__extends__, name, onlyIfExist);
-		else return onlyIfExist && !(name in obj) ? null : convertToProperty(obj, name);
+		else if (name in obj) return convertToProperty(obj, name);
+		else if (obj.__extends__) return getPropExt(obj.__extends__, name);
+		else return null;
+	}
+	
+	function getProp(obj, name) {
+		return obj[propPrefix+name] || convertToProperty(obj, name);
 	}
 	
 	function setProp(obj, name, prop) {
@@ -235,49 +238,68 @@
 	/**
 	 * Expression
 	 */
-	function evalExpr(str, data, context, scope, debugInfo) {
-		debugInfo = debugInfo.concat("{{" + str + "}}");
+	function parseExpr(str, debugInfo) {
+		var funcs = [];
 		var match;
-		while (match = regex[4].exec(str)) {
-			if (context[match[1]] === undefined) {
-				printDebug(debugInfo);
-				throw new Error("Method '" + match[1] + "' not found");
-			}
-		}
+		while (match = regex[4].exec(str)) funcs.push(match[1]);
 		var strings = [];
 		var parts = [];
 		var pmap = {};
 		var expr = str.replace(regex[2], function(bindingSrc, operator) {
-			var firstChar = bindingSrc.charAt(0);
-			var lastChar = bindingSrc.charAt(bindingSrc.length-1);
-			if (firstChar == "'" || firstChar == '"') {
+			if (bindingSrc.charAt(0) == "'" || bindingSrc.charAt(0) == '"') {
 				strings.push(bindingSrc.substr(1, bindingSrc.length-2));
 				return "strings[" + (strings.length-1) + "]";
 			}
-			else if (lastChar == '+' || lastChar == '-' || lastChar == '=') {
-				var prop = evalBindingSrc(bindingSrc.substring(1, bindingSrc.length-operator.length), data, context, scope, debugInfo);
-				var part = {subscribe: $.noop, unsubscribe: $.noop};
-				Object.defineProperty(part, "value", {get: prop.get, set: prop.set, enumerable: true, configurable: false});
-				parts.push(part);
+			else if (operator) {
+				parts.push({bindingSrc: bindingSrc.substring(1, bindingSrc.length-operator.length), operator: operator});
 				return "parts[" + (parts.length-1) + "].value" + operator;
 			}
 			else if (pmap[bindingSrc]) return pmap[bindingSrc];
 			else {
-				parts.push(evalBindingSrc(bindingSrc.substr(1), data, context, scope, debugInfo));
+				parts.push({bindingSrc: bindingSrc.substr(1)});
 				return pmap[bindingSrc] = "parts[" + (parts.length-1) + "].get()";
 			}
 		});
-		if (regex[1].test(expr)) return parts[0];
+		var isSinglePart = regex[1].test(expr);
 		if (!regex[6].test(expr)) expr = "return " + expr;
-		if (scope) for (var i in scope) expr = "var " + i + " = scope." + i + ";\n" + expr;
+		expr = "var thisElem = scope.thisElem, event = scope.event;\n" + expr;
 		var func;
 		try {
-			func = exprCache[expr] || (exprCache[expr] = new Function("data", "scope", "strings", "parts", expr));
+			func = new Function("data", "scope", "strings", "parts", expr);
 		}
 		catch (err) {
 			printDebug(debugInfo);
 			throw err;
 		}
+		return {
+			funcs: funcs,
+			strings: strings,
+			parts: parts,
+			isSinglePart: isSinglePart,
+			func: func
+		};
+	}
+	
+	function evalExpr(str, data, context, scope, debugInfo) {
+		debugInfo = debugInfo.concat("{{" + str + "}}");
+		var c = exprCache[str] || (exprCache[str] = parseExpr(str, debugInfo));
+		for (var i=0; i<c.funcs.length; i++) {
+			if (context[c.funcs[i]] === undefined) {
+				printDebug(debugInfo);
+				throw new Error("Method '" + c.funcs[i] + "' not found");
+			}
+		}
+		var parts = [];
+		for (var i=0; i<c.parts.length; i++) {
+			var prop = evalBindingSrc(c.parts[i].bindingSrc, data, context, scope, debugInfo);
+			if (c.parts[i].operator) {
+				var part = {subscribe: $.noop, unsubscribe: $.noop};
+				Object.defineProperty(part, "value", {get: prop.get, set: prop.set, enumerable: true, configurable: false});
+				parts.push(part);
+			}
+			else parts.push(prop);
+		}
+		if (c.isSinglePart) return parts[0];
 		
 		var keys = new Array(parts.length);
 		var prop = new Property(null, function(subscribed) {
@@ -288,7 +310,7 @@
 		prop.set = illegalOp;
 		prop.get = function() {
 			try {
-				return func.call(context, data, scope, strings, parts);
+				return c.func.call(context, data, scope, c.strings, parts);
 			}
 			catch (err) {
 				printDebug(debugInfo);
@@ -342,7 +364,7 @@
 			else derefs[i] = evalExpr(path[i].substr(1, path[i].length-2), data, context, scope, debugInfo);
 		}
 		var parts = new Array(path.length);
-		parts[0] = getProp(data, derefs[0], true);
+		parts[0] = getPropExt(data, derefs[0]);
 		if (!parts[0]) {
 			printDebug(debugInfo);
 			throw new Error("Missing binding source for #" + str);
@@ -383,7 +405,7 @@
 			var val = parts[parts.length-1];
 			if (val instanceof Property) val = val.get();
 			if (val instanceof Function) {
-				var ctx = data;
+				var ctx = context;
 				if (parts.length > 1) {
 					ctx = parts[parts.length-2];
 					if (ctx instanceof Property) ctx = ctx.get();
@@ -549,7 +571,7 @@
 			var dirs = getDirectives(node);
 			if (dirs.repeater) {
 					var repeater = new Repeater(dirs.repeater.name, node, data, context, debugInfo);
-					var prop = evalExpr(dirs.repeater.value, data, context, null, debugInfo);
+					var prop = evalExpr(dirs.repeater.value, data, context, {}, debugInfo);
 					var binding = new Binding(dirs.repeater.value, prop, function() {
 						repeater.update(prop.get());
 					},

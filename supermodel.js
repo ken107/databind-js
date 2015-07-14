@@ -47,6 +47,7 @@ var wss = new WebSocketServer({host: program.host, port: program.port});
 wss.on("connection", function(ws) {
 	var session = {};
 	var subscriptions = {};
+	var pendingPatches = [];
 	ws.on("message", function(text) {
 		model.session = session;
 		var m = {};
@@ -65,7 +66,7 @@ wss.on("connection", function(ws) {
 			else if (m.cmd === "ACT") {
 				if (m.method === "init") throw "Method 'init' is called automatically only once at startup";
 				if (!(actions[m.method] instanceof Function)) throw "Method '" + m.method + "' not found";
-				actions[m.method].apply(actions, [model].concat(m.args));
+				actions[m.method].apply(actions, [model].concat(m.args || []));
 			}
 			else throw "Unknown command '" + m.cmd + "'";
 		}
@@ -101,6 +102,11 @@ wss.on("connection", function(ws) {
 		}
 	}
 	function sendPatches(patches) {
-		ws.send(JSON.stringify({cmd: "PUB", patches: patches}));
+		if (!pendingPatches.length) setTimeout(sendPendingPatches, 0);
+		pendingPatches.push.apply(pendingPatches, patches);
+	}
+	function sendPendingPatches() {
+		ws.send(JSON.stringify({cmd: "PUB", patches: pendingPatches}));
+		pendingPatches = [];
 	}
 });
