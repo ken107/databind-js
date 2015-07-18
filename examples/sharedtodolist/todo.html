@@ -8,7 +8,6 @@
 		}
 	</style>
 	
-	<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
 	<script src="../../databind.js"></script>
 	<!-- here we use a fork of Starcounter-Jack's JSONPatch library that supports the non-standard "splice" op
 		use this if you expect to insert/remove large number of array elements and are concerned about performance -->
@@ -17,13 +16,25 @@
 	<script>
 		//load components
 		dataBinder.autoBind = false;
-		$("<div/>").load("../todolist2/components.html", function() {
-			$(this).children().each(function() {
-				var viewName = $(this).data("viewName");
-				dataBinder.views[viewName] = {template: this, controller: window[viewName]};
-			});
+		loadFile("../todolist2/components.html", function(text) {
+			var div = document.createElement("div");
+			div.innerHTML = text;
+			for (var child=div.firstChild; child; child=child.nextSibling) if (child.nodeType == 1) {
+				var viewName = child.getAttribute("data-view-name");
+				dataBinder.views[viewName] = {template: child, controller: window[viewName]};
+			}
 			dataBinder.autoBind = true;
 		});
+		
+		function loadFile(url, onLoad) {
+			var xhr= new XMLHttpRequest();
+			xhr.open('GET', url, true);
+			xhr.onreadystatechange= function() {
+				if (this.readyState!==4) return;
+				if (this.status==200) onLoad(this.responseText);
+			};
+			xhr.send();
+		}
 	</script>
 	<script>
 		items = [];

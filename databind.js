@@ -5,7 +5,7 @@
  * This source code is licensed under the MIT license found in the
  * LICENSE file in the root directory of this source tree.
  */
-(function($) {
+(function() {
 	var regex = [
 		/{{[\s\S]*?}}/g,
 		/^\s*parts\[0\].get\(\)\s*$/,
@@ -95,7 +95,7 @@
 					toRemove.push(attr.name);
 				}
 				else if (attr.name.lastIndexOf(api.directives.bindEvent,0) == 0) {
-					dirs.events.push({name: toCamelCase(attr.name.substr(api.directives.bindEvent.length)), value: attr.value});
+					dirs.events.push({name: attr.name.substr(api.directives.bindEvent.length), value: attr.value});
 					toRemove.push(attr.name);
 				}
 				else if (attr.name.lastIndexOf(api.directives.bindRepeater,0) == 0) {
@@ -115,12 +115,34 @@
 		});
 	}
 	
+	function noOp() {
+	}
+	
 	function illegalOp() {
 		throw new Error("Illegal operation");
 	}
 	
 	function printDebug(debugInfo) {
 		if (debugInfo.length) api.console.log(debugInfo);
+	}
+	
+	function proxy(func, ctx) {
+		var args = Array.prototype.slice.call(arguments, 2);
+		return function() {
+			return func.apply(ctx, args.concat(Array.prototype.slice.call(arguments)));
+		};
+	}
+	
+	function makeEventHandler(scope, prop) {
+		return function(event) {
+			scope.event = event;
+			var val = prop.get();
+			if (val == false && event) {
+				if (event.preventDefault instanceof Function) event.preventDefault();
+				if (event.stopPropagation instanceof Function) event.stopPropagation();
+			}
+			return val;
+		};
 	}
 	
 	/**
@@ -211,11 +233,11 @@
 	function observeArray(arr) {
 		if (arr.alter) return;
 		arr.alter = alterArray;
-		arr.push = $.proxy(arr.alter, arr, arr.push);
-		arr.pop = $.proxy(arr.alter, arr, arr.pop);
-		arr.shift = $.proxy(arr.alter, arr, arr.shift);
-		arr.unshift = $.proxy(arr.alter, arr, arr.unshift);
-		arr.splice = $.proxy(arr.alter, arr, arr.splice);
+		arr.push = proxy(arr.alter, arr, arr.push);
+		arr.pop = proxy(arr.alter, arr, arr.pop);
+		arr.shift = proxy(arr.alter, arr, arr.shift);
+		arr.unshift = proxy(arr.alter, arr, arr.unshift);
+		arr.splice = proxy(arr.alter, arr, arr.splice);
 	}
 	
 	function alterArray(func) {
@@ -293,7 +315,7 @@
 		for (var i=0; i<c.parts.length; i++) {
 			var prop = evalBindingSrc(c.parts[i].bindingSrc, data, context, scope, debugInfo);
 			if (c.parts[i].operator) {
-				var part = {subscribe: $.noop, unsubscribe: $.noop};
+				var part = {subscribe: noOp, unsubscribe: noOp};
 				Object.defineProperty(part, "value", {get: prop.get, set: prop.set, enumerable: true, configurable: false});
 				parts.push(part);
 			}
@@ -560,7 +582,8 @@
 		function clearCache() {
 			while (cache.lastChild) {
 				bindingStores.pop();
-				$(cache.lastChild).remove();
+				if (window.jQuery) jQuery(cache.lastChild).remove();
+				else cache.removeChild(cache.lastChild);
 			}
 		}
 	}
@@ -607,13 +630,10 @@
 					for (var i=0; i<dirs.events.length; i++) {
 							var scope = {thisElem: node, event: null};
 							var prop = evalExpr(dirs.events[i].value, data, context, scope, debugInfo);
-							$(node).on(dirs.events[i].name, [scope, prop], function(event) {
-								var scope = event.data[0];
-								var prop = event.data[1];
-								event.data = arguments.length > 2 ? Array.prototype.slice.call(arguments, 1) : arguments[1];
-								scope.event = event;
-								return prop.get();
-							});
+							var handler = makeEventHandler(scope, prop);
+							node.addEventListener(dirs.events[i].name, handler, false);
+							var camel = toCamelCase(dirs.events[i].name);
+							if (camel != dirs.events[i].name) node.addEventListener(camel, handler, false);
 						}
 					var newContext = new api.views[viewName].controller(node);
 					for (var i=0; i<dirs.params.length; i++) {
@@ -641,13 +661,10 @@
 				for (var i=0; i<dirs.events.length; i++) {
 						var scope = {thisElem: node, event: null};
 						var prop = evalExpr(dirs.events[i].value, data, context, scope, debugInfo);
-						$(node).on(dirs.events[i].name, [scope, prop], function(event) {
-							var scope = event.data[0];
-							var prop = event.data[1];
-							event.data = arguments.length > 2 ? Array.prototype.slice.call(arguments, 1) : arguments[1];
-							scope.event = event;
-							return prop.get();
-						});
+						var handler = makeEventHandler(scope, prop);
+						node.addEventListener(dirs.events[i].name, handler, false);
+						var camel = toCamelCase(dirs.events[i].name);
+						if (camel != dirs.events[i].name) node.addEventListener(camel, handler, false);
 					}
 				var child = node.firstChild;
 				while (child) {
@@ -661,7 +678,9 @@
 			var prop = evalText(node.nodeValue, data, context, {thisElem: node}, debugInfo);
 			if (prop) {
 				var binding = new Binding(node.nodeValue, prop, function() {
-					node.nodeValue = $('<textarea/>').html(prop.get()).val();
+					var textarea = document.createElement("textarea");
+					textarea.innerHTML = prop.get();
+					node.nodeValue = textarea.value;
 				});
 				binding.bind();
 				bindingStore.bindings.push(binding);
@@ -702,31 +721,28 @@
 		evalText: evalText,			//process a string containing {{binding expression}}'s, return a Property object or null if there is none
 		getProp: getProp,			//convert the specified object property to a getter-setter, return the underlying Property object
 		setProp: setProp,			//set the given Property object as the underlying getter-setter for the specified object property
-		notifyArrayChange: $.noop,
 		Binding: Binding,
 		BindingStore: BindingStore,
-		dataBind: dataBind,
-		console: window.console || {log: $.noop, warn: $.noop}
+		dataBind: function(elem, context, bindingStore, debugInfo) {
+			dataBind(elem, context, context, bindingStore||new BindingStore(), debugInfo||[]);
+		},
+		console: window.console || {log: noOp, warn: noOp}
 	};
 	
-	$.fn.dataBind = function(context, bindingStore, debugInfo) {
-		return this.each(function() {
-			dataBind(this, context, context, bindingStore||new BindingStore(), debugInfo||[]);
-		});
-	};
-	
-	$(document).ready(function() {
+	function onReady() {
 		var prop = getProp(api, "autoBind");
 		var binding = new Binding("autoBind", prop, function() {
 			if (prop.get()) {
 				binding.unbind();
 				api.console.log("Auto binding document, to disable auto binding set dataBinder.autoBind to false");
 				var startTime = new Date().getTime();
-				$(document.body).dataBind(window, null, ["document"]);
+				api.dataBind(document.body, window, null, ["document"]);
 				api.console.log("Finished binding document", new Date().getTime()-startTime, "ms");
 			}
 		});
 		binding.bind();
-	});
-})
-(jQuery);
+	}
+	
+	if (window.jQuery) jQuery(onReady);
+	else document.addEventListener("DOMContentLoaded", onReady, false);
+})();

@@ -3,8 +3,8 @@
 	<span class="filter"
 		bind-repeater-i="#filters.length"
 		bind-var-filter="#filters[#i]"
-		bind-statement-1="$(thisElem).toggleClass('active', #currentFilter == #filter)"
-		bind-event-click="$(#viewRoot).triggerHandler('setFilter', #filter)">
+		bind-statement-1="toggleClass(thisElem, 'active', #currentFilter == #filter)"
+		bind-event-click="dispatchEvent(#viewRoot, 'setFilter', #filter)">
 		{{#filter}}
 	</span>
 </div>
@@ -12,19 +12,20 @@
 
 <li data-view-name="TodoItem" class="todo-item">
 	<div class="delete-button"
-		bind-event-click="$(#viewRoot).triggerHandler('deleteItem')">X</div>
+		bind-event-click="dispatchEvent(#viewRoot, 'deleteItem')">X</div>
 	<input type="checkbox"
 		bind-statement-1="thisElem.checked = #completed"
-		bind-event-change="$(#viewRoot).triggerHandler('setCompleted', thisElem.checked)" />
+		bind-event-change="dispatchEvent(#viewRoot, 'setCompleted', thisElem.checked)" />
 	<span class="text"
-		bind-statement-1="$(thisElem).css('display', #editMode ? 'none' : 'inline-block')"
-		bind-statement-2="$(thisElem).css('text-decoration', #completed ? 'line-through' : 'none')"
-		bind-event-click="$(#viewRoot).triggerHandler('startEdit')">
+		bind-statement-1="thisElem.style.display = #editMode ? 'none' : 'inline-block'"
+		bind-statement-2="thisElem.style.textDecoration = #completed ? 'line-through' : 'none'"
+		bind-event-click="dispatchEvent(#viewRoot, 'startEdit')">
 		{{#text}}
 	</span>
 	<input type="text"
 		bind-statement-1="thisElem.value = #text"
-		bind-statement-2="$(thisElem).toggle(#editMode); if (#editMode) thisElem.focus()"
+		bind-statement-2="thisElem.style.display = #editMode ? '' : 'none'"
+		bind-statement-3="if (#editMode) thisElem.focus()"
 		bind-event-keyup="if (event.which == 27) this.stopEdit()"
 		bind-event-keypress="if (event.which == 13) {this.setText(thisElem.value); this.stopEdit(); return false}" />
 </li>
@@ -44,7 +45,7 @@
 			<input type="checkbox"
 				bind-statement-1="#updateFlag, thisElem.checked = this.isAllCompleted(#items)"
 				bind-statement-2="thisElem.disabled = !#items.length"
-				bind-event-change="$(#viewRoot).triggerHandler('setAllCompleted', thisElem.checked)" />
+				bind-event-change="dispatchEvent(#viewRoot, 'setAllCompleted', thisElem.checked)" />
 			<input type="text" placeholder="What to do?"
 				bind-event-keypress="if (event.which == 13) {this.addItem(thisElem.value); thisElem.value = ''; return false}" />
 		</li>
@@ -56,15 +57,15 @@
 			bind-param-edit-mode="#item == #editItem"
 			bind-event-start-edit="#editItem = #item"
 			bind-event-stop-edit="#editItem = null"
-			bind-event-set-completed="$(#viewRoot).triggerHandler('setCompleted', {item: #item, completed: event.data})"
-			bind-event-set-text="$(#viewRoot).triggerHandler('setText', {item: #item, text: event.data})"
-			bind-event-delete-item="$(#viewRoot).triggerHandler('deleteItem', #item)">
+			bind-event-set-completed="dispatchEvent(#viewRoot, 'setCompleted', {item: #item, completed: event.data})"
+			bind-event-set-text="dispatchEvent(#viewRoot, 'setText', {item: #item, text: event.data})"
+			bind-event-delete-item="dispatchEvent(#viewRoot, 'deleteItem', #item)">
 		</li>
 	</ul>
 	<div class="clear-completed"
-		bind-statement-1="#updateFlag, $(thisElem).toggle(this.isSomeCompleted(#items))">
+		bind-statement-1="#updateFlag, thisElem.style.display = this.isSomeCompleted(#items) ? '' : 'none'">
 		<input type="button" value="Clear Completed"
-			bind-event-click="$(#viewRoot).triggerHandler('clearCompleted')" />
+			bind-event-click="dispatchEvent(#viewRoot, 'clearCompleted')" />
 	</div>
 	<div>
 		{{#updateFlag, this.countIncomplete(#items)}} remaining

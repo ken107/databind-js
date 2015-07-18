@@ -13,6 +13,7 @@
 		toggleclass: "x-toggleclass-",
 		onevent: "x-on"
 	};
+
 	dataBinder.onDataBinding = function(node) {
 		var toRemove = [];
 		for (var i=0; i<node.attributes.length; i++) {
@@ -21,9 +22,9 @@
 				if (attr.name == my.onenterkey)
 					node.setAttribute("bind-event-keypress", "if (event.which == 13) {" + attr.value + "; return false}");
 				else if (attr.name == my.visible)
-					node.setAttribute("bind-statement-" + attr.name, "$(thisElem).toggle(Boolean(" + attr.value + "))");
+					node.setAttribute("bind-statement-" + attr.name, "thisElem.style.display = " + attr.value + " ? '' : 'none'");
 				else if (attr.name == my.linethrough)
-					node.setAttribute("bind-statement-" + attr.name, "$(thisElem).css('text-decoration', " + attr.value + " ? 'line-through' : '')");
+					node.setAttribute("bind-statement-" + attr.name, "thisElem.style.textDecoration = " + attr.value + " ? 'line-through' : ''");
 				else if (attr.name == my.focus)
 					node.setAttribute("bind-statement-" + attr.name, "if (" + attr.value + ") thisElem.focus()");
 				else if (attr.name == my.checked)
@@ -37,11 +38,11 @@
 					node.setAttribute("bind-var-" + attr.name.substr(my.foreach.length), attr.value + "[#i]");
 				}
 				else if (attr.name.lastIndexOf(my.attr,0) == 0)
-					node.setAttribute("bind-statement-" + attr.name, "$(thisElem).attr('" + attr.name.substr(my.attr.length) + "', " + attr.value + ")");
+					node.setAttribute("bind-statement-" + attr.name, "thisElem.setAttribute('" + attr.name.substr(my.attr.length) + "', " + attr.value + ")");
 				else if (attr.name.lastIndexOf(my.style,0) == 0)
-					node.setAttribute("bind-statement-" + attr.name, "$(thisElem).css('" + attr.name.substr(my.style.length) + "', " + attr.value + ")");
+					node.setAttribute("bind-statement-" + attr.name, "thisElem.style." + toCamelCase(attr.name.substr(my.style.length)) + " = " + attr.value);
 				else if (attr.name.lastIndexOf(my.toggleclass,0) == 0)
-					node.setAttribute("bind-statement-" + attr.name, "$(thisElem).toggleClass('" + attr.name.substr(my.toggleclass.length) + "', " + attr.value + ")");
+					node.setAttribute("bind-statement-" + attr.name, "toggleClass(thisElem, '" + attr.name.substr(my.toggleclass.length) + "', " + attr.value + ")");
 				else if (attr.name.lastIndexOf(my.onevent,0) == 0)
 					node.setAttribute("bind-event-" + attr.name.substr(my.onevent.length), attr.value);
 				else continue;
@@ -50,4 +51,15 @@
 		}
 		for (var i=0; i<toRemove.length; i++) node.removeAttribute(toRemove[i]);
 	};
+
+	function toCamelCase(str) {
+		return str.replace(/-([a-z])/g, function(g) {
+			return g[1].toUpperCase();
+		});
+	}
+
+	window.toggleClass = function(elem, className, toggle) {
+		if (toggle) elem.className += " " + className;
+		else elem.className = elem.className.replace(new RegExp("(?:^|\\s)" + className + "(?!\\S)", "g"), "");
+	}
 })();

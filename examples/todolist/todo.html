@@ -28,13 +28,20 @@
 			text-decoration: underline;
 		}
 	</style>
-	<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
 	<script src="../../databind.js"></script>
 	<script>
 		items = [];
 		editItem = null;
 		filters = ["All", "Active", "Completed"];
 		currentFilter = "All";
+		
+		function toggleClass(elem, className, toggle) {
+			if (toggle) elem.className += " " + className;
+			else elem.className = elem.className.replace(new RegExp("(?:^|\\s)" + className + "(?!\\S)", "g"), "");
+		}
+		function setVisible(elem, toggle) {
+			elem.style.display = toggle ? "" : "none";
+		}
 	</script>
 </head>
 <body>
@@ -42,7 +49,7 @@
 	<div>
 		<span class="filter"
 			bind-repeater-i="#filters.length"
-			bind-statement-1="$(thisElem).toggleClass('active', #currentFilter == #filters[#i])"
+			bind-statement-1="toggleClass(thisElem, 'active', #currentFilter == #filters[#i])"
 			bind-event-click="#currentFilter = #filters[#i]">{{#filters[#i]}}</span>
 	</div>
 	<ul>
@@ -55,21 +62,21 @@
 		</li>
 		<li bind-repeater-i="#items.length"
 			bind-var-item="#items[#i]"
-			bind-statement-1="$(thisElem).toggle(#currentFilter == 'All' || #currentFilter == 'Active' && !#items[#i].completed || #currentFilter == 'Completed' && !!#items[#i].completed)">
+			bind-statement-1="setVisible(thisElem, #currentFilter == 'All' || #currentFilter == 'Active' && !#items[#i].completed || #currentFilter == 'Completed' && !!#items[#i].completed)">
 			<div class="delete-button"
 				bind-event-click="#items.splice(#items.indexOf(#item), 1)">X</div>
 			<input type="checkbox"
 				bind-statement-1="thisElem.checked = #item.completed"
 				bind-event-change="#item.completed = thisElem.checked" />
 			<span class="text"
-				bind-statement-1="$(thisElem).css('display', #item != #editItem ? 'inline-block' : 'none')"
-				bind-statement-2="$(thisElem).css('text-decoration', #item.completed ? 'line-through' : 'none')"
+				bind-statement-1="thisElem.style.display = #item != #editItem ? 'inline-block' : 'none'"
+				bind-statement-2="thisElem.style.textDecoration = #item.completed ? 'line-through' : 'none'"
 				bind-event-click="#editItem = #item">
 				{{#item.text}}
 			</span>
 			<input type="text"
 				bind-statement-1="thisElem.value = #item.text"
-				bind-statement-2="$(thisElem).toggle(#item == #editItem); if (#item == #editItem) thisElem.focus()"
+				bind-statement-2="setVisible(thisElem, #item == #editItem); if (#item == #editItem) thisElem.focus()"
 				bind-event-keypress="if (event.which == 13) { #item.text = thisElem.value; #editItem = null; return false; }" />
 		</li>
 	</ul>

@@ -1,3 +1,5 @@
+//controllers
+
 function Filters(elem) {
 	this.viewRoot = elem;
 }
@@ -21,16 +23,38 @@ function TodoList(elem) {
 		return items.filter(function(item) {return !item.completed}).length;
 	}
 	this.addItem = function(text) {
-		$(elem).triggerHandler('addItem', text);
+		dispatchEvent(elem, 'addItem', text);
 	}
 }
 
 function TodoItem(elem) {
 	this.viewRoot = elem;
 	this.setText = function(text) {
-		$(elem).triggerHandler('setText', text);
+		dispatchEvent(elem, 'setText', text);
 	}
 	this.stopEdit = function() {
-		$(elem).triggerHandler('stopEdit');
+		dispatchEvent(elem, 'stopEdit');
 	}
+}
+
+
+//helpers
+
+function toggleClass(elem, className, toggle) {
+	if (toggle) elem.className += " " + className;
+	else elem.className = elem.className.replace(new RegExp("(?:^|\\s)" + className + "(?!\\S)", "g"), "");
+}
+
+function dispatchEvent(elem, type, data) {
+	var event;
+	try {
+		event = new Event(type);
+		event.bubbles = false;
+	}
+	catch (err) {
+		event = document.createEvent('Event');
+		event.initEvent(type, false, false);
+	}
+	event.data = data;
+	elem.dispatchEvent(event);
 }

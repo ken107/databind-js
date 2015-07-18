@@ -4,9 +4,11 @@ Kenna offers:
 - Simple and intuitive way to create reusable components
 - A Push Model implementation
 
+Kenna requires IE9+.
+
 
 # Data Binding
-To enable data binding on your page, simply include JQuery and databind.js.
+To enable data binding on your page, simply include databind.js.
 ```html
 <script src="http://cdn.rawgit.com/ken107/kenna-js/master/databind.js"></script>
 ```
@@ -38,7 +40,7 @@ index = 3;
 todos.push({text: "Return shoes"});		//Return shoes --> Not done
 ```
 
-http://jsfiddle.net/p9s1yjqc/1/
+http://jsfiddle.net/p9s1yjqc/2/
 
 
 #### Bind-Repeater Directive
@@ -52,7 +54,7 @@ http://jsfiddle.net/p9s1yjqc/1/
 <div bind-repeater-i="#todos.length"
 	bind-statement-1="thisElem.style.textDecoration = #todos[#i].done ? 'line-through' : ''"
 	bind-statement-2="thisElem.style.display = #todos[#i].done && #hideInactive ? 'none' : ''"
-	bind-statement-3="$(thisElem).toggleClass(#i % 2 == 0 ? 'even-row' : 'odd-row')">
+	bind-statement-3="thisElem.className = #i%2 == 0 ? 'even-row' : 'odd-row'">
 	{{#todos[#i].text}}
 </div>
 ```
@@ -71,9 +73,7 @@ The statement-_id_ can be any string, it is there only to make the attribute nam
 </div>
 ```
 
-The special variable `event` contains the JQuery event object.
-
-http://jsfiddle.net/8s2tbmcx/1/
+http://jsfiddle.net/8s2tbmcx/2/
 
 
 #### Bind-Var Directive
@@ -102,11 +102,11 @@ The inner div will be replaced by the view named _Greeting_.  Declare your views
 ```javascript
 dataBinder.views = {
 	Greeting: {
-		template: $("<div bind-event-click='this.close()'>{{#greet+this.toTitleCase(#name)}}</div>").get(0),
+		template: createElement("<div bind-event-click='this.close()'>{{#greet+this.toTitleCase(#name)}}</div>"),
 		controller: function(elem) {
 			this.greet = "Hello, ";
 			this.toTitleCase = function(text) {...};
-			this.close = function() {$(elem).hide()};
+			this.close = function() {elem.style.display = "none"};
 		}
 	}
 }

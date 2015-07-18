@@ -8,19 +8,30 @@
 		}
 	</style>
 	
-	<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
 	<script src="../../databind.js"></script>
 	<script src="components.js"></script>
 	<script>
 		//load components
 		dataBinder.autoBind = false;
-		$("<div/>").load("components.html", function() {
-			$(this).children().each(function() {
-				var viewName = $(this).data("viewName");
-				dataBinder.views[viewName] = {template: this, controller: window[viewName]};
-			});
+		loadFile("components.html", function(text) {
+			var div = document.createElement("div");
+			div.innerHTML = text;
+			for (var child=div.firstChild; child; child=child.nextSibling) if (child.nodeType == 1) {
+				var viewName = child.getAttribute("data-view-name");
+				dataBinder.views[viewName] = {template: child, controller: window[viewName]};
+			}
 			dataBinder.autoBind = true;
 		});
+		
+		function loadFile(url, onLoad) {
+			var xhr= new XMLHttpRequest();
+			xhr.open('GET', url, true);
+			xhr.onreadystatechange= function() {
+				if (this.readyState!==4) return;
+				if (this.status==200) onLoad(this.responseText);
+			};
+			xhr.send();
+		}
 	</script>
 	<script>
 		items = [];
