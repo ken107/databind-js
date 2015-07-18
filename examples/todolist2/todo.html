@@ -28,7 +28,9 @@
 </head>
 <body>
 	<!--
-	This example demonstrates proper component design.  Parent view distributes data to its children, and child views propagates events up the parent chain to be handled.  Files:
+	The component breakdown is somewhat overkill for this application.  However, it serves to demonstrate the design concept.
+	Parent view distributes data to its children, and child views propagates events up the parent chain to be handled.
+	Files in this example:
 		* components.html:  view templates
 		* components.js:  controller classes
 		* components.css:  styles
@@ -38,6 +40,8 @@
 		bind-event-add-item="#items.push({text: event.data})"
 		bind-event-delete-item="#items.splice(#items.indexOf(event.data), 1)"
 		bind-event-set-completed="event.data.item.completed = event.data.completed"
+		bind-event-set-all-completed="#items.forEach(function(item) {item.completed = event.data})"
+		bind-event-clear-completed="#items = #items.filter(function(item) {return !item.completed})"
 		bind-event-set-text="event.data.item.text = event.data.text">
 	</div>
 </body>

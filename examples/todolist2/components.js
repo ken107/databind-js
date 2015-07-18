@@ -1,44 +1,34 @@
 function Filters(elem) {
-	this.setFilter = function(filter) {
-		$(elem).triggerHandler('setFilter', filter);
-	}
+	this.viewRoot = elem;
 }
 
 function TodoList(elem) {
-	this.currentFilter = 'All';
-	this.editItem = null;
-	this.updateFlag = 0;
-	this.filterFunc = function(item) {
-		return this.currentFilter == 'All' ||
-			this.currentFilter == 'Active' && !item.completed ||
-			this.currentFilter == 'Completed' && !!item.completed;
+	this.viewRoot = elem;
+	this.filterItems = function(items, currentFilter) {
+		return items.filter(function(item) {
+			return currentFilter == 'All' ||
+				currentFilter == 'Active' && !item.completed ||
+				currentFilter == 'Completed' && !!item.completed;
+		})
 	}
-	this.deleteItem = function(item) {
-		$(elem).triggerHandler('deleteItem', item);
+	this.isAllCompleted = function(items) {
+		return items.length && items.every(function(item) {return item.completed});
+	}
+	this.isSomeCompleted = function(items) {
+		return items.some(function(item) {return item.completed});
+	}
+	this.countIncomplete = function(items) {
+		return items.filter(function(item) {return !item.completed}).length;
 	}
 	this.addItem = function(text) {
 		$(elem).triggerHandler('addItem', text);
 	}
-	this.setCompleted = function(item, completed) {
-		$(elem).triggerHandler('setCompleted', {item: item, completed: completed});
-	}
-	this.setText = function(item, text) {
-		$(elem).triggerHandler('setText', {item, item, text: text});
-	}
 }
 
 function TodoItem(elem) {
-	this.deleteItem = function() {
-		$(elem).triggerHandler('deleteItem');
-	}
-	this.setCompleted = function(completed) {
-		$(elem).triggerHandler('setCompleted', completed);
-	}
+	this.viewRoot = elem;
 	this.setText = function(text) {
 		$(elem).triggerHandler('setText', text);
-	}
-	this.startEdit = function() {
-		$(elem).triggerHandler('startEdit')
 	}
 	this.stopEdit = function() {
 		$(elem).triggerHandler('stopEdit');

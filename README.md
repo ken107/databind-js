@@ -1,19 +1,12 @@
-# Why
-How is this better than Angular, React, or Backbone?  Kenna is not derived from, or inspired by, any other framework.  It was built from the ground up and takes a completely different approach to data-binding, with strong emphasis on minimalism and simplicity.  The view framework was created with uncompromising goals, it allows you to:
-
-* Bind to data anywhere, your window object is the model
-* Bind to arbitrary nodes in an object tree
-* Use your binding in arbitrarily complex JavaScript expressions
-* Declare your binding expressions directly in HTML, on the affected element
-* Easily define reusable views (components) that integrate seamlessly with data-binding semantics
-* Do all the above with the absolute minimal set of new directives and syntax that you'll have to learn
-* Easily customize and extend the framework
-
-Give it 15 minutes and decide for yourself.
+# What Is It
+Kenna offers:
+- Powerful, flexible data binding syntax
+- Simple and intuitive way to create reusable components
+- A Push Model implementation
 
 
-# The View
-Simply include JQuery and databind.js, and you're ready to go.
+# Data Binding
+To enable data binding on your page, simply include JQuery and databind.js.
 ```html
 <script src="http://cdn.rawgit.com/ken107/kenna-js/master/databind.js"></script>
 ```
@@ -32,21 +25,20 @@ index = 0;
 #### Text Binding
 ```html
 <div>
-    Todo: {{#todos[#index].text}}.
-    Status: {{#todos[#index].done ? "Done" : "Not done"}}.
+    {{#todos[#index].text}} --> {{#todos[#index].done ? "Done" : "Not done"}}.
 </div>
 ```
 
 Changing data will update the text.
 ```javascript
-todos[0].text = "Buy groceries";		//Todo: Buy grociers. Status: Done
-index = 1;								//Todo: Pick up mom from airport. Status: Not done
-todos[1].done = true;					//Todo: Pick up mom from airport. Status: Done
+todos[0].text = "Buy groceries";		//Buy groceries --> Done
+index = 1;								//Pick up mom from airport --> Not done
+todos[1].done = true;					//Pick up mom from airport --> Done
 index = 3;
-todos.push({text: "Return shoes"});		//Todo: Return shoes. Status: Not done
+todos.push({text: "Return shoes"});		//Return shoes --> Not done
 ```
 
-http://jsfiddle.net/p9s1yjqc/
+http://jsfiddle.net/p9s1yjqc/1/
 
 
 #### Bind-Repeater Directive
@@ -65,7 +57,7 @@ http://jsfiddle.net/p9s1yjqc/
 </div>
 ```
 
-The bind-statement directive lets you execute a JavaScript statement (e.g. manipulate the DOM) whenever your data changes.  The special variable `thisElem` points to the current element.
+The bind-statement directive lets you execute a JavaScript statement whenever some data changes.  The special variable `thisElem` points to the current element.
 
 The statement-_id_ can be any string, it is there only to make the attribute name unique, as required by HTML.  You may want to use a descriptive string as the _id_, for example: `bind-statement-strike-done` or `bind-statement-hide-inactive`.
 
@@ -93,11 +85,12 @@ http://jsfiddle.net/8s2tbmcx/1/
 </div>
 ```
 
-Here is the complete TodoList example.  Notice how little you have had to learn in order to build this.  And it's built without any JavaScript code behind!  You can build complex apps with just the above 4 directives.
+Here is the full TodoList example.
 
 http://rawgit.com/ken107/kenna-js/master/examples/todolist/todo.html
 
 
+# Components
 #### Bind-View & Bind-Param Directives
 ```html
 <div>
@@ -119,20 +112,24 @@ dataBinder.views = {
 }
 ```
 
-You use the bind-param directive to pass data into your view.  Usually you load your templates from an external file, in which case you need to turn `autoBind` off and turn it back on after they're loaded.  See the following example for how to do that.
+You use the bind-param directive to pass data into your view.  These params actually become properties of `this`, so you can bind to them as `#name` and refer to them in your controller code as `this.name`.
+
+Normally you load your templates from an external file.  If this is the case, you will need to disable the `autoBind` function, and re-enable it once your templates have finished loading and are ready to be used.  See the following example for how to do that.
 
 http://rawgit.com/ken107/kenna-js/master/examples/todolist2/todo.html
 
 
-### ADVANCED
+## Customization
 
 View the [wiki](https://github.com/ken107/kenna-js/wiki/Advanced) to learn about advanced functions such as defining custom directives, changing the names of binding directives, or calling dataBind manually.
 
 
-# The Model
-The supermodel.js is a Node app that provides MVC-Model as a service.  You use this to host a model that is shared between your clients.  For example, in an MVC chat application, your chat log resides on the server.  Each chat client keeps a copy of the chat log that is kept synchronized with the server via a PUB/SUB mechanism.  The controller, residing on the server, receives new chat messages from clients and append them to the chat log.
+# Push Model
+A Push Model is one that sits on the server and push changes to its clients.  A Push Model is useful in live applications, where it's necessary to have a synchronized view state across all clients.
 
-Note the difference with an Angular-Firebase solution, where the controller resides with the view.  Kenna believes that the controller naturally should reside with the part of the model which it controls.  Benefits include server-side validation and better concurrency control.
+Chat is a good example.  In an MVC chat application, your chat log lives on the server.  Each chat client has a copy of the chat log that is kept synchronized with the server via a PUB/SUB mechanism.  The controller (also on server) receives new chat messages from clients and append them to the chat log.
+
+Our Push Model implementation is a Node app called "supermodel".  It uses `Object.observe` to monitor change (requires Node 0.11.13 or higher).
 ```
   Usage: supermodel [options] <controller.js>
 
@@ -144,10 +141,10 @@ Note the difference with an Angular-Firebase solution, where the controller resi
     -p, --port <port>  listening port
 ```
 
-The supermodel accepts client Websocket connections on a specific host and port (or *:8080 if not specified).  This connection is to be used for the PUB/SUB mechanism, as well as for sending controller actions (or events).  Each message is a Websocket text frame, the content of which is a JSON object containing a _cmd_ property whose value is one of "SUB", "UNSUB", "PUB", or "ACT".
+The supermodel accepts client Websocket connections on a specific host and port (or *:8080 if not specified).  This connection is to be used for the PUB/SUB mechanism, as well as for sending controller actions.  Each message is a Websocket text frame, the content of which is a JSON object containing a _cmd_ property whose value is one of "SUB", "UNSUB", "PUB", or "ACT".
 
 #### SUB/UNSUB
-Clients send a SUB/UNSUB message to the server to start/stop listening for changes to the Model.  The message must contain a _pointers_ property which holds an array of JSON Pointers (RFC 6901) into the server's Model object:
+Clients send a SUB/UNSUB message to the server to start/stop listening for changes to the Model.  The message must contain a _pointers_ property which holds an array of JSON Pointers (RFC 6901) into the Model object:
 ```
 {
     cmd: "SUB",
@@ -175,7 +172,7 @@ Clients send an ACT message to the server to execute a controller action.  The m
 ```
 
 
-# The Controller
+## The Controller
 The controller.js provided to the supermodel specifies the controller actions that can be invoked by the clients.  It must contain a series of method declarations on `this`, each method corresponding to one action:
 ```javascript
 this.method = function(model, ...args) {

@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/8.6/styles/github.min.css">
+	<style>
+		body, pre {
+			margin: 0;
+			background: #f8f8f8;
+		}
+	</style>
+	
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/8.6/highlight.min.js"></script>
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
+	<script>
+		function getParameterByName(name) {
+			name = name.replace(/[\[]/, "\\[").replace(/[\]]/, "\\]");
+			var regex = new RegExp("[\\?&]" + name + "=([^&#]*)"),
+				results = regex.exec(location.search);
+			return results === null ? "" : decodeURIComponent(results[1].replace(/\+/g, " "));
+		}
+		
+		$.get(getParameterByName("url"), function(result) {
+			$('pre code').each(function(i, block) {
+				$(block).text(result);
+				hljs.highlightBlock(block);
+			});
+		});
+	</script>
+</head>
+<body>
+	<pre><code class="html" id="code" style="overflow-x: initial;"></code></pre>
+</body>
+</html>

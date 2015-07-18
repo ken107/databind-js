@@ -1,0 +1,37 @@
+body {
+	font-family: Arial;
+}
+h1 {
+	margin: .3em;
+}
+.header, .footer {
+	text-align: center;
+}
+.filter {
+	margin: 5px;
+}
+.filter:not(.active) {
+	color: blue;
+	cursor: pointer;
+	text-decoration: underline;
+}
+.content {
+	margin: 1em auto;
+	width: 300px;
+	padding: 15px;
+	list-style: none;
+	line-height: 30px;
+	background: #f3f3f3;
+	border-radius: 5px;
+}
+.content .text, .content input[type=text] {
+	width: 250px;
+}
+.delete-button {
+	float: right;
+	cursor: pointer;
+}
+.view-source {
+	margin-top: 20px;
+	text-align: center;
+}

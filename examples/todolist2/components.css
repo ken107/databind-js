@@ -18,7 +18,17 @@
 	width: 250px;
 }
 
+.todo-item .text {
+	width: 250px;
+}
 .todo-item .delete-button {
 	float: right;
 	cursor: pointer;
+}
+
+.clear-completed {
+	width: 320px;
+}
+.clear-completed input {
+	float: right;
 }

@@ -2,22 +2,51 @@
 	bind-var-filters="['All', 'Active', 'Completed']">
 	<span class="filter"
 		bind-repeater-i="#filters.length"
-		bind-statement-1="$(thisElem).toggleClass('active', #currentFilter == #filters[#i])"
-		bind-event-click="this.setFilter(#filters[#i])">
-		{{#filters[#i]}}
+		bind-var-filter="#filters[#i]"
+		bind-statement-1="$(thisElem).toggleClass('active', #currentFilter == #filter)"
+		bind-event-click="$(#viewRoot).triggerHandler('setFilter', #filter)">
+		{{#filter}}
 	</span>
 </div>
 
-<div data-view-name="TodoList" class="todo-list">
+
+<li data-view-name="TodoItem" class="todo-item">
+	<div class="delete-button"
+		bind-event-click="$(#viewRoot).triggerHandler('deleteItem')">X</div>
+	<input type="checkbox"
+		bind-statement-1="thisElem.checked = #completed"
+		bind-event-change="$(#viewRoot).triggerHandler('setCompleted', thisElem.checked)" />
+	<span class="text"
+		bind-statement-1="$(thisElem).css('display', #editMode ? 'none' : 'inline-block')"
+		bind-statement-2="$(thisElem).css('text-decoration', #completed ? 'line-through' : 'none')"
+		bind-event-click="$(#viewRoot).triggerHandler('startEdit')">
+		{{#text}}
+	</span>
+	<input type="text"
+		bind-statement-1="thisElem.value = #text"
+		bind-statement-2="$(thisElem).toggle(#editMode); if (#editMode) thisElem.focus()"
+		bind-event-keyup="if (event.which == 27) this.stopEdit()"
+		bind-event-keypress="if (event.which == 13) {this.setText(thisElem.value); this.stopEdit(); return false}" />
+</li>
+
+
+<div data-view-name="TodoList" class="todo-list"
+	bind-var-update-flag="0"
+	bind-var-current-filter="'All'">
 	<h1>TODO</h1>
 	<div bind-view="Filters"
 		bind-param-current-filter="#currentFilter"
 		bind-event-set-filter="#currentFilter = event.data">
 	</div>
-	<ul bind-var-filtered-items="#updateFlag, #items.filter($.proxy(this.filterFunc, this))">
+	<ul bind-var-filtered-items="#updateFlag, this.filterItems(#items, #currentFilter)"
+		bind-var-edit-item="null">
 		<li>
+			<input type="checkbox"
+				bind-statement-1="#updateFlag, thisElem.checked = this.isAllCompleted(#items)"
+				bind-statement-2="thisElem.disabled = !#items.length"
+				bind-event-change="$(#viewRoot).triggerHandler('setAllCompleted', thisElem.checked)" />
 			<input type="text" placeholder="What to do?"
-				bind-event-keypress="if (event.which == 13) { this.addItem(thisElem.value); thisElem.value = ''; return false; }" />
+				bind-event-keypress="if (event.which == 13) {this.addItem(thisElem.value); thisElem.value = ''; return false}" />
 		</li>
 		<li bind-repeater-i="#filteredItems.length"
 			bind-var-item="#filteredItems[#i]"
@@ -27,36 +56,22 @@
 			bind-param-edit-mode="#item == #editItem"
 			bind-event-start-edit="#editItem = #item"
 			bind-event-stop-edit="#editItem = null"
-			bind-event-set-completed="this.setCompleted(#item, event.data)"
-			bind-event-set-text="this.setText(#item, event.data)"
-			bind-event-delete-item="this.deleteItem(#item)">
+			bind-event-set-completed="$(#viewRoot).triggerHandler('setCompleted', {item: #item, completed: event.data})"
+			bind-event-set-text="$(#viewRoot).triggerHandler('setText', {item: #item, text: event.data})"
+			bind-event-delete-item="$(#viewRoot).triggerHandler('deleteItem', #item)">
 		</li>
 	</ul>
-	<div>
-		{{#updateFlag, #items.filter(function(item) {return !item.completed}).length || "No"}} things to do
+	<div class="clear-completed"
+		bind-statement-1="#updateFlag, $(thisElem).toggle(this.isSomeCompleted(#items))">
+		<input type="button" value="Clear Completed"
+			bind-event-click="$(#viewRoot).triggerHandler('clearCompleted')" />
 	</div>
-	<!-- the following detects when items are added/deleted, when their completed state change,
-		or when the selected filter changes, and set the updateFlag
-	-->
-	<div bind-statement-1="#items.length, #currentFilter, #updateFlag++">
+	<div>
+		{{#updateFlag, this.countIncomplete(#items)}} remaining
+	</div>
+	<!-- the following detects when items are added/deleted or when their completed state change and set the updateFlag -->
+	<div bind-statement-1="#items.length, #updateFlag++">
 		<div bind-repeater-i="#items.length"
 			bind-statement-1="#items[#i].completed, #updateFlag++"></div>
 	</div>
 </div>
-
-<li data-view-name="TodoItem" class="todo-item">
-	<div class="delete-button"
-		bind-event-click="this.deleteItem()">X</div>
-	<input type="checkbox"
-		bind-statement-1="thisElem.checked = #completed"
-		bind-event-change="this.setCompleted(thisElem.checked)" />
-	<span bind-statement-1="$(thisElem).toggle(!#editMode)"
-		bind-statement-2="$(thisElem).css('text-decoration', #completed ? 'line-through' : 'none')"
-		bind-event-click="this.startEdit()">
-		{{#text}}
-	</span>
-	<input type="text"
-		bind-statement-1="thisElem.value = #text"
-		bind-statement-2="$(thisElem).toggle(#editMode); if (#editMode) thisElem.focus()"
-		bind-event-keypress="if (event.which == 13) { this.setText(thisElem.value); this.stopEdit(); return false; }" />
-</li>

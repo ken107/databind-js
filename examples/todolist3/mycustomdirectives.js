@@ -6,7 +6,10 @@
 		focus: "x-focus",
 		checked: "x-checked",
 		value: "x-value",
+		disabled: "x-disabled",
 		foreach: "x-foreach-",
+		attr: "x-attr-",
+		style: "x-style-",
 		toggleclass: "x-toggleclass-",
 		onevent: "x-on"
 	};
@@ -27,10 +30,16 @@
 					node.setAttribute("bind-statement-" + attr.name, "thisElem.checked = " + attr.value);
 				else if (attr.name == my.value)
 					node.setAttribute("bind-statement-" + attr.name, "thisElem.value = " + attr.value);
+				else if (attr.name == my.disabled)
+					node.setAttribute("bind-statement-" + attr.name, "thisElem.disabled = " + attr.value);
 				else if (attr.name.lastIndexOf(my.foreach,0) == 0) {
 					node.setAttribute("bind-repeater-i", attr.value + ".length");
 					node.setAttribute("bind-var-" + attr.name.substr(my.foreach.length), attr.value + "[#i]");
 				}
+				else if (attr.name.lastIndexOf(my.attr,0) == 0)
+					node.setAttribute("bind-statement-" + attr.name, "$(thisElem).attr('" + attr.name.substr(my.attr.length) + "', " + attr.value + ")");
+				else if (attr.name.lastIndexOf(my.style,0) == 0)
+					node.setAttribute("bind-statement-" + attr.name, "$(thisElem).css('" + attr.name.substr(my.style.length) + "', " + attr.value + ")");
 				else if (attr.name.lastIndexOf(my.toggleclass,0) == 0)
 					node.setAttribute("bind-statement-" + attr.name, "$(thisElem).toggleClass('" + attr.name.substr(my.toggleclass.length) + "', " + attr.value + ")");
 				else if (attr.name.lastIndexOf(my.onevent,0) == 0)

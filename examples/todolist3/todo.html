@@ -2,76 +2,54 @@
 <html>
 <head>
 	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/github-fork-ribbon-css/0.1.1/gh-fork-ribbon.min.css" />
-	<style>
-		body {
-			font-family: Arial;
-		}
-		ul {
-			width: 300px;
-			padding: 10px;
-			list-style: none;
-			line-height: 30px;
-			background: #f3f3f3;
-		}
-		li > input[type=text] {
-			width: 250px;
-		}
-		.delete-button {
-			float: right;
-			cursor: pointer;
-		}
-		.filter {
-			margin-right: 10px;
-		}
-		.filter:not(.active) {
-			color: blue;
-			cursor: pointer;
-			text-decoration: underline;
-		}
-	</style>
+	<link rel="stylesheet" href="todo.css" />
+	
 	<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
 	<script src="../../databind.js"></script>
 	<script src="mycustomdirectives.js"></script>
 	<script>
-		items = [];
+		items = [
+			{text: "Buy groceries"},
+			{text: "Pick John up from airport"},
+			{text: "Soccer match"},
+			{text: "Gift for mom", done: true},
+			{text: "Dentist appointment", done: true},
+			{text: "Vaccination for Bella"}
+		];
 		editItem = null;
 		filters = ["All", "Active", "Completed"];
 		currentFilter = "All";
 	</script>
 </head>
 <body>
-	<!-- TOP RIGHT RIBBON: START COPYING HERE -->
-	<div class="github-fork-ribbon-wrapper right">
-		<div class="github-fork-ribbon">
-			<a href="https://github.com/ken107/kenna-js">Fork me on GitHub</a>
+	<div class="header">
+		<h1>TODO</h1>
+		<div>
+			<span class="filter"
+				x-foreach-filter="#filters"
+				x-toggleclass-active="#currentFilter == #filter"
+				x-onclick="#currentFilter = #filter">{{#filter}}</span>
 		</div>
 	</div>
-	<!-- TOP RIGHT RIBBON: END COPYING HERE -->
-	
-	<h1>TODO</h1>
-	<div>
-		<span class="filter"
-			x-foreach-filter="#filters"
-			x-toggleclass-active="#currentFilter == #filter"
-			x-onclick="#currentFilter = #filter">{{#filter}}</span>
-	</div>
-	<ul>
+	<ul class="content">
 		<li>
+			<input type="checkbox"
+				x-disabled="!#items.length"
+				x-onchange="#items.forEach(function(item) {item.done = thisElem.checked})" />
 			<input type="text" placeholder="What to do?"
 				x-onenterkey="#items.push({text: thisElem.value}); thisElem.value = '';" />
 		</li>
 		<li x-foreach-item="#items"
-			x-visible="#currentFilter == 'All' || #currentFilter == 'Active' && !#item.completed || #currentFilter == 'Completed' && #item.completed">
+			x-visible="#currentFilter == 'All' || #currentFilter == 'Active' && !#item.done || #currentFilter == 'Completed' && #item.done">
 			<div class="delete-button"
 				x-onclick="#items.splice(#items.indexOf(#item), 1)">X</div>
 			<input type="checkbox"
-				x-checked="#item.completed"
-				x-onchange="#item.completed = thisElem.checked" />
-			<span x-visible="#item != #editItem"
-				x-linethrough="#item.completed"
-				x-onclick="#editItem = #item">
-				{{#item.text}}
-			</span>
+				x-checked="#item.done"
+				x-onchange="#item.done = thisElem.checked" />
+			<span class="text"
+				x-style-display="#item != #editItem ? 'inline-block' : 'none'"
+				x-linethrough="#item.done"
+				x-onclick="#editItem = #item">{{#item.text}}</span>
 			<input type="text"
 				x-value="#item.text"
 				x-visible="#item == #editItem"
@@ -79,8 +57,20 @@
 				x-onenterkey="#item.text = thisElem.value; #editItem = null;" />
 		</li>
 	</ul>
-	<div style="margin-top: 10px;">
-		<a bind-statement-1="$(thisElem).attr('href', 'view-source:'+location.href)">View source</a>
+	<div class="footer">
+		<input type="button" value="Clear Completed"
+			x-onclick="#items = #items.filter(function(item) {return !item.done})" />
 	</div>
+	
+	<div class="view-source">
+		<iframe width="80%" height="1300" frameborder="0"
+			src="../viewsource.html?url=todolist3/todo.html"></iframe>
+	</div>
+	<div class="github-fork-ribbon-wrapper right">
+		<div class="github-fork-ribbon">
+			<a href="https://github.com/ken107/kenna-js">Fork me on GitHub</a>
+		</div>
+	</div>
+	<script src="//s7.addthis.com/js/300/addthis_widget.js#pubid=ra-55a7cfe11dd8dbce" async="async"></script>
 </body>
 </html>

@@ -48,6 +48,8 @@
 		bind-event-add-item="action('addItem', [event.data])"
 		bind-event-delete-item="action('deleteItem', [#items.indexOf(event.data)])"
 		bind-event-set-completed="action('setCompleted', [#items.indexOf(event.data.item), event.data.completed])"
+		bind-event-set-all-completed="action('setAllCompleted', [event.data])"
+		bind-event-clear-completed="action('clearCompleted')"
 		bind-event-set-text="action('setText', [#items.indexOf(event.data.item), event.data.text])">
 	</div>
 </body>

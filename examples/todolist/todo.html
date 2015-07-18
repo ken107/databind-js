@@ -12,7 +12,7 @@
 			line-height: 30px;
 			background: #f3f3f3;
 		}
-		li > input[type=text] {
+		li > .text, li > input[type=text] {
 			width: 250px;
 		}
 		.delete-button {
@@ -47,6 +47,9 @@
 	</div>
 	<ul>
 		<li>
+			<input type="checkbox"
+				bind-statement-1="thisElem.disabled = !#items.length"
+				bind-event-change="#items.forEach(function(item) {item.completed = thisElem.checked})" />
 			<input type="text" placeholder="What to do?"
 				bind-event-keypress="if (event.which == 13) { #items.push({text: thisElem.value}); thisElem.value = ''; return false; }" />
 		</li>
@@ -58,7 +61,8 @@
 			<input type="checkbox"
 				bind-statement-1="thisElem.checked = #item.completed"
 				bind-event-change="#item.completed = thisElem.checked" />
-			<span bind-statement-1="$(thisElem).toggle(#item != #editItem)"
+			<span class="text"
+				bind-statement-1="$(thisElem).css('display', #item != #editItem ? 'inline-block' : 'none')"
 				bind-statement-2="$(thisElem).css('text-decoration', #item.completed ? 'line-through' : 'none')"
 				bind-event-click="#editItem = #item">
 				{{#item.text}}
@@ -69,5 +73,9 @@
 				bind-event-keypress="if (event.which == 13) { #item.text = thisElem.value; #editItem = null; return false; }" />
 		</li>
 	</ul>
+	<div>
+		<input type="button" value="Clear Completed"
+			bind-event-click="#items = #items.filter(function(item) {return !item.completed})" />
+	</div>
 </body>
 </html>
