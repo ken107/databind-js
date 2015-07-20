@@ -73,40 +73,42 @@
 	};
 	
 	function getDirectives(node) {
-		var dirs = {params: [], vars: [], statements: [], events: []};
-		var toRemove = [];
+		var dirs = {params: [], vars: [], statements: [], events: [], toRemove: []};
 		for (var i=0; i<node.attributes.length; i++) {
 			var attr = node.attributes[i];
 			if (attr.specified) {
 				if (attr.name == api.directives.bindView) {
 					dirs.view = attr.value;
-					toRemove.push(attr.name);
+					dirs.toRemove.push(attr.name);
 				}
 				else if (attr.name.lastIndexOf(api.directives.bindParameter,0) == 0) {
 					dirs.params.push({name: toCamelCase(attr.name.substr(api.directives.bindParameter.length)), value: attr.value});
-					toRemove.push(attr.name);
+					dirs.toRemove.push(attr.name);
 				}
 				else if (attr.name.lastIndexOf(api.directives.bindVariable,0) == 0) {
 					dirs.vars.push({name: toCamelCase(attr.name.substr(api.directives.bindVariable.length)), value: attr.value});
-					toRemove.push(attr.name);
+					dirs.toRemove.push(attr.name);
 				}
 				else if (attr.name.lastIndexOf(api.directives.bindStatement,0) == 0) {
 					dirs.statements.push({value: attr.value});
-					toRemove.push(attr.name);
+					dirs.toRemove.push(attr.name);
 				}
 				else if (attr.name.lastIndexOf(api.directives.bindEvent,0) == 0) {
 					dirs.events.push({name: attr.name.substr(api.directives.bindEvent.length), value: attr.value});
-					toRemove.push(attr.name);
+					dirs.toRemove.push(attr.name);
 				}
 				else if (attr.name.lastIndexOf(api.directives.bindRepeater,0) == 0) {
 					dirs.repeater = {name: toCamelCase(attr.name.substr(api.directives.bindRepeater.length)), value: attr.value};
-					toRemove = [attr.name];
+					dirs.toRemove = [attr.name];
 					break;
 				}
 			}
 		}
-		for (var i=0; i<toRemove.length; i++) node.removeAttribute(toRemove[i]);
 		return dirs;
+	}
+	
+	function removeDirectives(node, dirs) {
+		for (var i=0; i<dirs.toRemove.length; i++) node.removeAttribute(dirs.toRemove[i]);
 	}
 	
 	function toCamelCase(str) {
@@ -495,12 +497,11 @@
 	/**
 	 * Binding
 	 */
-	function Binding(expr, prop, onChange, onUnbind) {
+	function Binding(prop, onChange, onUnbind) {
 		var subkey = null;
 		function notifyChange() {
 			if (subkey) onChange();
 		}
-		this.expr = expr;
 		this.bind = function() {
 			if (subkey) throw new Error("Already bound");
 			subkey = prop.subscribe(function() {
@@ -552,8 +553,11 @@
 					else {
 						var newElem = node.cloneNode(true);
 						newElems.appendChild(newElem);
-						var newData = extend(data);
-						setProp(newData, name, new Property(i));
+						var newData = data;
+						if (name) {
+							newData = extend(data);
+							setProp(newData, name, new Property(i));
+						}
 						var bindingStore = new BindingStore();
 						bindingStores.push(bindingStore);
 						dataBind(newElem, newData, context, bindingStore, debugInfo);
@@ -593,23 +597,24 @@
 			if (api.onDataBinding) api.onDataBinding(node);
 			var dirs = getDirectives(node);
 			if (dirs.repeater) {
+				removeDirectives(node, dirs);
 					var repeater = new Repeater(dirs.repeater.name, node, data, context, debugInfo);
 					var prop = evalExpr(dirs.repeater.value, data, context, {}, debugInfo);
-					var binding = new Binding(dirs.repeater.value, prop, function() {
-						repeater.update(prop.get());
-					},
-					function() {
-						repeater.update(0);
-					});
+					var binding = new Binding(prop, function() {repeater.update(prop.get());}, function() {repeater.update(0);});
 					binding.bind();
 					bindingStore.bindings.push(binding);
 			}
 			else {
-				if (dirs.view) {
+				while (dirs.view) {
 					var viewName = dirs.view;
 					if (!api.views[viewName]) {
-						printDebug(debugInfo);
-						throw new Error("View not found (" + viewName + ")");
+						api.console.warn("View '" + viewName + "' is not ready");
+						var repeater = new Repeater(null, node, data, context, debugInfo);
+						var prop = evalExpr("#views['" + viewName + "']", api, null, {}, debugInfo);
+						var binding = new Binding(prop, function() {repeater.update(prop.get() ? 1 : 0);}, function() {repeater.update(0);});
+						binding.bind();
+						bindingStore.bindings.push(binding);
+						return;
 					}
 					var newNode = api.views[viewName].template.cloneNode(true);
 					node.parentNode.replaceChild(newNode, node);
@@ -618,12 +623,12 @@
 					for (var i=0; i<dirs.vars.length; i++) {
 							if (!extendedData) extendedData = extend(data);
 							var prop = evalExpr(dirs.vars[i].value, data, context, {thisElem: node}, debugInfo);
-							bindParam(extendedData, dirs.vars[i].name, dirs.vars[i].value, prop, bindingStore);
+							bindParam(extendedData, dirs.vars[i].name, prop, bindingStore);
 						}
 					if (extendedData) data = extendedData;
 					for (var i=0; i<dirs.statements.length; i++) {
 							var prop = evalExpr(dirs.statements[i].value, data, context, {thisElem: node}, debugInfo);
-							var binding = new Binding(dirs.statements[i].value, prop, prop.get);
+							var binding = new Binding(prop, prop.get);
 							binding.bind();
 							bindingStore.bindings.push(binding);
 						}
@@ -638,23 +643,24 @@
 					var newContext = new api.views[viewName].controller(node);
 					for (var i=0; i<dirs.params.length; i++) {
 							var prop = evalExpr(dirs.params[i].value, data, context, {thisElem: node}, debugInfo);
-							bindParam(newContext, dirs.params[i].name, dirs.params[i].value, prop, bindingStore);
+							bindParam(newContext, dirs.params[i].name, prop, bindingStore);
 						}
 					data = context = newContext;
 					debugInfo = debugInfo.concat(viewName);
 					if (api.onDataBinding) api.onDataBinding(node);
 					dirs = getDirectives(node);
 				}
+				removeDirectives(node, dirs);
 				var extendedData = null;
 				for (var i=0; i<dirs.vars.length; i++) {
 						if (!extendedData) extendedData = extend(data);
 						var prop = evalExpr(dirs.vars[i].value, data, context, {thisElem: node}, debugInfo);
-						bindParam(extendedData, dirs.vars[i].name, dirs.vars[i].value, prop, bindingStore);
+						bindParam(extendedData, dirs.vars[i].name, prop, bindingStore);
 					}
 				if (extendedData) data = extendedData;
 				for (var i=0; i<dirs.statements.length; i++) {
 						var prop = evalExpr(dirs.statements[i].value, data, context, {thisElem: node}, debugInfo);
-						var binding = new Binding(dirs.statements[i].value, prop, prop.get);
+						var binding = new Binding(prop, prop.get);
 						binding.bind();
 						bindingStore.bindings.push(binding);
 					}
@@ -677,7 +683,7 @@
 		else if (node.nodeType == 3) {
 			var prop = evalText(node.nodeValue, data, context, {thisElem: node}, debugInfo);
 			if (prop) {
-				var binding = new Binding(node.nodeValue, prop, function() {
+				var binding = new Binding(prop, function() {
 					var textarea = document.createElement("textarea");
 					textarea.innerHTML = prop.get();
 					node.nodeValue = textarea.value;
@@ -688,9 +694,9 @@
 		}
 	}
 	
-	function bindParam(data, paramName, attrValue, prop, bindingStore) {
+	function bindParam(data, paramName, prop, bindingStore) {
 		if (prop.isExpr) {
-			var binding = new Binding(attrValue, prop, function() {
+			var binding = new Binding(prop, function() {
 				data[paramName] = prop.get();
 			});
 			binding.bind();
@@ -712,7 +718,6 @@
 			bindRepeater: "bind-repeater-"
 		},
 		views: {},					//declare your views, name->value where value={template: anHtmlTemplate, controller: function(rootElementOfView)}
-									//if you load your templates asynchronously, you will need to turn off autoBind and turn it back on once they're ready
 		onDataBinding: null,		//set this to a function that will be called before each node is bound, you can use this to process custom directives
 		autoBind: true,				//if true, automatically dataBind the entire document as soon as it is ready
 		repeaterCacheTTL: 300000,	//removed repeater items are kept in a cache for reuse, the cache is cleared if it is not accessed within the TTL
@@ -730,17 +735,12 @@
 	};
 	
 	function onReady() {
-		var prop = getProp(api, "autoBind");
-		var binding = new Binding("autoBind", prop, function() {
-			if (prop.get()) {
-				binding.unbind();
+			if (api.autoBind) {
 				api.console.log("Auto binding document, to disable auto binding set dataBinder.autoBind to false");
 				var startTime = new Date().getTime();
 				api.dataBind(document.body, window, null, ["document"]);
 				api.console.log("Finished binding document", new Date().getTime()-startTime, "ms");
 			}
-		});
-		binding.bind();
 	}
 	
 	if (window.jQuery) jQuery(onReady);

@@ -112,9 +112,9 @@ dataBinder.views = {
 }
 ```
 
-You use the bind-param directive to pass data into your view.  These params actually become properties of `this`, so you can bind to them as `#name` and refer to them in your controller code as `this.name`.
+You use the bind-param directive to pass data into your view.  These params actually become properties of `this`, so you can bind to them as `#name` and refer to them in your controller as `this.name`.
 
-Normally you load your templates from an external file.  If this is the case, you will need to disable the `autoBind` function, and re-enable it once your templates have finished loading and are ready to be used.  See the following example for how to do that.
+Here is the TodoList broken into components.
 
 http://rawgit.com/ken107/kenna-js/master/examples/todolist2/todo.html
 

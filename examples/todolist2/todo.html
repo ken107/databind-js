@@ -12,7 +12,6 @@
 	<script src="components.js"></script>
 	<script>
 		//load components
-		dataBinder.autoBind = false;
 		loadFile("components.html", function(text) {
 			var div = document.createElement("div");
 			div.innerHTML = text;
@@ -20,7 +19,6 @@
 				var viewName = child.getAttribute("data-view-name");
 				dataBinder.views[viewName] = {template: child, controller: window[viewName]};
 			}
-			dataBinder.autoBind = true;
 		});
 		
 		function loadFile(url, onLoad) {
@@ -39,8 +37,6 @@
 </head>
 <body>
 	<!--
-	The component breakdown is somewhat overkill for this application.  However, it serves to demonstrate the design concept.
-	Parent view distributes data to its children, and child views propagates events up the parent chain to be handled.
 	Files in this example:
 		* components.html:  view templates
 		* components.js:  controller classes
