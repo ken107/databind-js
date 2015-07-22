@@ -1,4 +1,5 @@
 <div data-view-name="Filters" class="todo-filters"
+	bind-var-view-root="thisElem"
 	bind-var-filters="['All', 'Active', 'Completed']">
 	<span class="filter"
 		bind-repeater-i="#filters.length"
@@ -10,7 +11,8 @@
 </div>
 
 
-<li data-view-name="TodoItem" class="todo-item">
+<li data-view-name="TodoItem" class="todo-item"
+	bind-var-view-root="thisElem">
 	<div class="delete-button"
 		bind-event-click="dispatchEvent(#viewRoot, 'deleteItem')">X</div>
 	<input type="checkbox"
@@ -26,12 +28,13 @@
 		bind-statement-1="thisElem.value = #text"
 		bind-statement-2="thisElem.style.display = #editMode ? '' : 'none'"
 		bind-statement-3="if (#editMode) thisElem.focus()"
-		bind-event-keyup="if (event.which == 27) this.stopEdit()"
-		bind-event-keypress="if (event.which == 13) {this.setText(thisElem.value); this.stopEdit(); return false}" />
+		bind-event-keyup="if (event.which == 27) dispatchEvent(#viewRoot, 'stopEdit')"
+		bind-event-keypress="if (event.which == 13) {dispatchEvent(#viewRoot, 'setText', thisElem.value); dispatchEvent(#viewRoot, 'stopEdit'); return false}" />
 </li>
 
 
 <div data-view-name="TodoList" class="todo-list"
+	bind-var-view-root="thisElem"
 	bind-var-update-flag="0"
 	bind-var-current-filter="'All'">
 	<h1>TODO</h1>
@@ -47,7 +50,7 @@
 				bind-statement-2="thisElem.disabled = !#items.length"
 				bind-event-change="dispatchEvent(#viewRoot, 'setAllCompleted', thisElem.checked)" />
 			<input type="text" placeholder="What to do?"
-				bind-event-keypress="if (event.which == 13) {this.addItem(thisElem.value); thisElem.value = ''; return false}" />
+				bind-event-keypress="if (event.which == 13) {dispatchEvent(#viewRoot, 'addItem', thisElem.value); thisElem.value = ''; return false}" />
 		</li>
 		<li bind-repeater-i="#filteredItems.length"
 			bind-var-item="#filteredItems[#i]"

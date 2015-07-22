@@ -58,11 +58,11 @@
 				bind-statement-1="thisElem.disabled = !#items.length"
 				bind-event-change="#items.forEach(function(item) {item.completed = thisElem.checked})" />
 			<input type="text" placeholder="What to do?"
-				bind-event-keypress="if (event.which == 13) { #items.push({text: thisElem.value}); thisElem.value = ''; return false; }" />
+				bind-event-keypress="if (event.which == 13) {#items.push({text: thisElem.value}); thisElem.value = ''; return false}" />
 		</li>
 		<li bind-repeater-i="#items.length"
 			bind-var-item="#items[#i]"
-			bind-statement-1="setVisible(thisElem, #currentFilter == 'All' || #currentFilter == 'Active' && !#items[#i].completed || #currentFilter == 'Completed' && !!#items[#i].completed)">
+			bind-statement-1="setVisible(thisElem, #currentFilter == 'All' || #currentFilter == 'Active' && !#item.completed || #currentFilter == 'Completed' && #item.completed)">
 			<div class="delete-button"
 				bind-event-click="#items.splice(#items.indexOf(#item), 1)">X</div>
 			<input type="checkbox"
@@ -76,8 +76,10 @@
 			</span>
 			<input type="text"
 				bind-statement-1="thisElem.value = #item.text"
-				bind-statement-2="setVisible(thisElem, #item == #editItem); if (#item == #editItem) thisElem.focus()"
-				bind-event-keypress="if (event.which == 13) { #item.text = thisElem.value; #editItem = null; return false; }" />
+				bind-statement-2="setVisible(thisElem, #item == #editItem)"
+				bind-statement-3="if (#item == #editItem) thisElem.focus()"
+				bind-event-keyup="if (event.which == 27) #editItem = null"
+				bind-event-keypress="if (event.which == 13) {#item.text = thisElem.value; #editItem = null; return false}" />
 		</li>
 	</ul>
 	<div>

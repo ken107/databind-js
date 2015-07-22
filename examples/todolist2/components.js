@@ -1,11 +1,9 @@
 //controllers
 
-function Filters(elem) {
-	this.viewRoot = elem;
+function Filters() {
 }
 
-function TodoList(elem) {
-	this.viewRoot = elem;
+function TodoList() {
 	this.filterItems = function(items, currentFilter) {
 		return items.filter(function(item) {
 			return currentFilter == 'All' ||
@@ -22,19 +20,9 @@ function TodoList(elem) {
 	this.countIncomplete = function(items) {
 		return items.filter(function(item) {return !item.completed}).length;
 	}
-	this.addItem = function(text) {
-		dispatchEvent(elem, 'addItem', text);
-	}
 }
 
-function TodoItem(elem) {
-	this.viewRoot = elem;
-	this.setText = function(text) {
-		dispatchEvent(elem, 'setText', text);
-	}
-	this.stopEdit = function() {
-		dispatchEvent(elem, 'stopEdit');
-	}
+function TodoItem() {
 }
 
 
