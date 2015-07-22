@@ -20,7 +20,7 @@
   ],
   "dependencies": {
     "commander": "^2.8.1",
-    "jsonpatch-observe": "^0.0.4",
+    "jsonpatch-observe": "^0.0.6",
     "jsonpointer": "^1.1.0",
     "ws": "^0.7.1"
   },

@@ -45,7 +45,7 @@ fs.watchFile(program.args[0], function(curr, prev) {
 
 var wss = new WebSocketServer({host: program.host, port: program.port});
 wss.on("connection", function(ws) {
-	var session = {};
+	var session = null;
 	var subscriptions = {};
 	var pendingPatches = [];
 	ws.on("message", function(text) {
@@ -73,10 +73,12 @@ wss.on("connection", function(ws) {
 		catch (err) {
 			console.log(err.stack || err);
 		}
+		session = model.session;
 		model.session = null;
 	});
 	ws.on("close", function() {
 		for (var pointer in subscriptions) subscriptions[pointer].cancel();
+		if (session && session.onclose instanceof Function) session.onclose();
 	});
 	function subscribe(canSplice, pointer) {
 		if (pointer == "") throw "Cannot subscribe to the root model object";
