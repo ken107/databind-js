@@ -135,8 +135,8 @@
 		};
 	}
 	
-	function makeEventHandler(scope, prop) {
-		return function(event) {
+	function makeEventHandler(node, type, scope, prop) {
+		function handler(event) {
 			scope.event = event;
 			var val = prop.get();
 			if (val == false && event) {
@@ -144,7 +144,21 @@
 				if (event.stopPropagation instanceof Function) event.stopPropagation();
 			}
 			return val;
-		};
+		}
+		function jQueryHandler(event) {
+			event.data = arguments.length > 2 ? Array.prototype.slice.call(arguments, 1) : arguments[1];
+			scope.event = event;
+			return prop.get();
+		}
+		var camel = toCamelCase(type);
+		if (window.jQuery) {
+			jQuery(node).on(type, jQueryHandler);
+			if (camel != type) jQuery(node).on(camel, jQueryHandler);
+		}
+		else {
+			node.addEventListener(type, handler, false);
+			if (camel != type) node.addEventListener(camel, handler, false);
+		}
 	}
 	
 	/**
@@ -635,10 +649,7 @@
 					for (var i=0; i<dirs.events.length; i++) {
 							var scope = {thisElem: node, event: null};
 							var prop = evalExpr(dirs.events[i].value, data, context, scope, debugInfo);
-							var handler = makeEventHandler(scope, prop);
-							node.addEventListener(dirs.events[i].name, handler, false);
-							var camel = toCamelCase(dirs.events[i].name);
-							if (camel != dirs.events[i].name) node.addEventListener(camel, handler, false);
+							makeEventHandler(node, dirs.events[i].name, scope, prop);
 						}
 					var newContext = new api.views[viewName].controller(node);
 					for (var i=0; i<dirs.params.length; i++) {
@@ -667,10 +678,7 @@
 				for (var i=0; i<dirs.events.length; i++) {
 						var scope = {thisElem: node, event: null};
 						var prop = evalExpr(dirs.events[i].value, data, context, scope, debugInfo);
-						var handler = makeEventHandler(scope, prop);
-						node.addEventListener(dirs.events[i].name, handler, false);
-						var camel = toCamelCase(dirs.events[i].name);
-						if (camel != dirs.events[i].name) node.addEventListener(camel, handler, false);
+						makeEventHandler(node, dirs.events[i].name, scope, prop);
 					}
 				var child = node.firstChild;
 				while (child) {
