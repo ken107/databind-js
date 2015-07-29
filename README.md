@@ -144,7 +144,7 @@ Our Push Model implementation is a Node app called "supermodel".  It uses `Objec
 The supermodel accepts client Websocket connections on a specific host and port (or *:8080 if not specified).  This connection is to be used for the PUB/SUB mechanism, as well as for sending controller actions.  Each message is a Websocket text frame, the content of which is a JSON object containing a _cmd_ property whose value is one of "SUB", "UNSUB", "PUB", or "ACT".
 
 #### SUB/UNSUB
-Clients send a SUB/UNSUB message to the server to start/stop listening for changes to the Model.  The message must contain a _pointers_ property which holds an array of JSON Pointers (RFC 6901) into the Model object:
+Clients send a SUB/UNSUB message to the server to start/stop observing changes to the Model.  The message must contain a _pointers_ property which holds an array of JSON Pointers (RFC 6901) into the Model object:
 ```
 {
     cmd: "SUB",
@@ -192,9 +192,6 @@ this.sendChat = function(model, name, message) {
 };
 ```
 
-#### Live Code Update
-The Supermodel monitors the controller.js file for changes and automatically reloads it.  This allows code update without requiring restart.  This is useful in live applications since restarting the process causes loss of all client connections.
-
 #### Running the Chat Example
 Open a command prompt in the kenna-js directory and run:
 ```
@@ -212,3 +209,36 @@ node supermodel.js examples/sharedtodolist/todo_controller.js
 ```
 
 Then open the file examples/sharedtodolist/todo.html in two or more browser windows.  If you use Chrome, you must run a local web server because Chrome does not allow AJAX over file:// URL.  This example reuses the TodoList view from the todolist2 example.
+
+#### Running the Messenger Example
+```
+npm install
+node supermodel.js examples/messenger/controller.js
+```
+
+Then open the file examples/messenger/messenger.html in two or more browser windows.  Enter a user ID and name to login to the messenger app.
+
+## Additional Features
+#### Live Code Update
+The Supermodel monitors the controller.js file for changes and automatically reloads it.  This allows code update without requiring restart.  This is useful in live applications since restarting the process causes loss of all client connections.
+
+#### Session Support
+The special property `model.session` lets you store an object that is visible only to the client making the request.  If this object has a method `onclose`, it will be called when the client disconnects.
+
+#### Splice Patch
+The supermodel uses the [jsonpatch-observe](https://github.com/ken107/jsonpatch-observe) library, which can generate a non-standard "splice" patch that is potentially more efficient.  If a client can handle the "splice" patch, it may send a SUB command with `{canSplice: true}`.  Array changes for that subscription will then come as splices rather than single-element add/removes.
+
+#### DefPrivate Helper Method
+Define a private (non-enumerable) property.  Private properties are not observed and not visible to clients.  This method can be called from anywhere within controller.js.
+```javascript
+defPrivate(obj, propName, value)
+```
+
+#### TrackKeys Helper Method
+When called on an object, this method will create a _keys_ property and keep it populated with the object's keys.
+```javascript
+var users = {};
+trackKeys(users);
+users[301] = {name: "John"};
+console.log(users.keys);		//[301]
+```

@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<link href="components.css" rel="stylesheet" type="text/css" />
+	
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.4/jquery.min.js"></script>
+	<script src="../../databind.js"></script>
+	<script src="https://rawgit.com/Starcounter-Jack/JSON-Patch/master/src/json-patch.js"></script>
+	<script src="components.js"></script>
+	<script>
+		$("<div/>").load("components.html", function() {
+			$(this).children().each(function() {
+				var viewName = $(this).data("viewName");
+				if (viewName) dataBinder.views[viewName] = {template: this, controller: window[viewName]};
+			});
+		});
+	</script>
+	<script>
+		myUserInfo = null;
+	</script>
+</head>
+<body>
+	<div bind-statement-1="$(thisElem).toggle(!#myUserInfo)">
+		<form bind-event-submit="myUserInfo = {id: thisElem.userId.value, name: thisElem.userName.value}; return false">
+			ID: <input type="text" name="userId" size="5" />
+			Name: <input type="text" name="userName" size="15" />
+			<input type="submit" />
+		</form>
+	</div>
+	<div bind-view="Messenger"
+		bind-param-connect-url="'ws://localhost:8080/messaging'"
+		bind-param-my-user-info="#myUserInfo"></div>
+</body>
+</html>

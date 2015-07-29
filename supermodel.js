@@ -13,16 +13,18 @@ var program = require("commander"),
 	model = {},
 	actions = {};
 
+if (process.env.supermodel_argv) process.argv.push.apply(process.argv, process.env.supermodel_argv.split(/\s+/));
+
 program
 	.version("0.0.1")
 	.usage("[options] <controller.js>")
-	.option("-h, --host <host>", "listening ip or host name", "0.0.0.0")
-	.option("-p, --port <port>", "listening port", parseInt, 8080)
+	.option("-H, --host <host>", "listening ip or host name", "0.0.0.0")
+	.option("-p, --port <port>", "listening port", 8080)
 	.parse(process.argv);
 
 if (program.args.length != 1) program.help();
 var code = fs.readFileSync(program.args[0], {encoding: "utf-8"});
-new Function(code).call(actions);
+new Function("defPrivate", "trackKeys", code).call(actions, defPrivate, trackKeys);
 if (actions.init) actions.init(model);
 
 fs.watchFile(program.args[0], function(curr, prev) {
@@ -34,7 +36,7 @@ fs.watchFile(program.args[0], function(curr, prev) {
 				return;
 			}
 			try {
-				new Function(code).call(actions);
+				new Function("defPrivate", "trackKeys", code).call(actions, defPrivate, trackKeys);
 			}
 			catch (err) {
 				console.log(err.stack);
@@ -108,7 +110,50 @@ wss.on("connection", function(ws) {
 		pendingPatches.push.apply(pendingPatches, patches);
 	}
 	function sendPendingPatches() {
-		ws.send(JSON.stringify({cmd: "PUB", patches: pendingPatches}));
-		pendingPatches = [];
+		try {
+			ws.send(JSON.stringify({cmd: "PUB", patches: pendingPatches}));
+			pendingPatches = [];
+		}
+		catch (err) {
+			console.log(err.stack)
+		}
 	}
 });
+
+function defPrivate(obj, prop, val) {
+	if (val === undefined) val = obj[prop];
+	Object.defineProperty(obj, prop, {value: val, writable: true, enumerable: false, configurable: true});
+}
+
+function trackKeys(obj) {
+	if (obj.keys) return;
+	obj.keys = [];
+	Object.observe(obj, updateKeys, ["add", "delete", "reconfigure"]);
+	return {
+		cancel: function() {
+			Object.unobserve(obj, updateKeys);
+		}
+	};
+}
+
+function updateKeys(changes) {
+	for (var i=0; i<changes.length; i++) {
+		var c = changes[i], desc, index;
+		switch (c.type) {
+			case "add":
+				desc = Object.getOwnPropertyDescriptor(c.object, c.name);
+				if (desc.enumerable) c.object.keys.push(c.name);
+				break;
+			case "delete":
+				index = c.object.keys.indexOf(c.name);
+				if (index != -1) c.object.keys.splice(index, 1);
+				break;
+			case "reconfigure":
+				desc = Object.getOwnPropertyDescriptor(c.object, c.name);
+				index = c.object.keys.indexOf(c.name);
+				if (desc.enumerable && index == -1) c.object.keys.push(c.name);
+				if (!desc.enumerable && index != -1) c.object.keys.splice(index, 1);
+				break;
+		}
+	}
+}

@@ -1,0 +1,94 @@
+
+<div data-view-name="Messenger" class="messenger"
+	bind-var-notifier="new Notifier()"
+	bind-var-max-z="100"
+	bind-statement-1="$(thisElem).toggle(#users != null)"
+	bind-statement-2="if (#myUserInfo) this.connect()">
+	<span class="link"
+		bind-event-click="this.action('showMessenger', [true])">Messenger</span>
+	<div bind-view="UserList"
+		bind-param-users="#users"
+		bind-statement-1="$(thisElem).toggle(#session.state.showMessenger)"
+		bind-event-close="this.action('showMessenger', [false])"
+		bind-event-select-user="this.action('openChat', [event.data])"></div>
+	<div bind-repeater-i="#session.conversations.keys.length"
+		bind-var-other-user-id="#session.conversations.keys[#i]"
+		bind-view="ChatBox"
+		bind-param-other-user="#users[#otherUserId]"
+		bind-param-conversation="#session.conversations[#otherUserId]"
+		bind-event-send-chat="this.action('sendChat', [#otherUserId, event.data])"
+		bind-event-close="this.action('closeChat', [#otherUserId])"
+		bind-event-resize="this.action('resizeChat', [#otherUserId, event.data])"
+		bind-event-move="this.action('moveChat', [#otherUserId, event.data])"
+		bind-event-raise="if ($(thisElem).css('z-index') != #maxZ) $(thisElem).css('z-index', #maxZ+=1)"
+		bind-event-notify="#notifier.show('**New Message from ' + #users[#otherUserId].name)"></div>
+</div>
+
+
+<div data-view-name="UserList" class="user-list"
+	bind-var-view-root="thisElem"
+	bind-var-show-inactive="false">
+	<div class="title-bar">
+		<div class="close-button"
+			bind-event-click="$(#viewRoot).triggerHandler('close')">x</div>
+		Messenger
+	</div>
+	<div class="item"
+		bind-repeater-i="#users.keys.length"
+		bind-var-user="#users[#users.keys[#i]]"
+		bind-statement-1="$(thisElem).toggle(#showInactive || #user.sessions > 0)"
+		bind-event-click="$(#viewRoot).triggerHandler('select-user', #user.id)">
+		<img bind-statement-1="thisElem.src = #user.sessions ? 'active.png' : 'inactive.png'" />
+		<span>{{#user.name}}</span>
+	</div>
+	<div class="buttons">
+		<div class="toggle-button"
+			bind-statement-1="$(thisElem).toggleClass('depressed', #showInactive)"
+			bind-event-click="#showInactive = !#showInactive">
+			<img src="inactive.png" title="Show inactive users" />
+		</div>
+	</div>
+</div>
+
+
+<div data-view-name="ChatBox" class="chat-box"
+	bind-var-view-root="thisElem"
+	bind-var-dragger="new Dragger(thisElem, function(newPos) {$(thisElem).triggerHandler('move', newPos)})"
+	bind-var-resizer="new Resizer(thisElem, null, function(newSize) {$(thisElem).triggerHandler('resize', newSize)})"
+	bind-statement-1="$(thisElem).toggle(#conversation.open == true)"
+	bind-statement-2="if (#conversation.position) $(thisElem).css(#conversation.position)"
+	bind-statement-3="if (#conversation.size) $(thisElem).width(#conversation.size.width)"
+	bind-statement-4="if (#conversation.zIndex) $(thisElem).css('z-index', #conversation.zIndex)"
+	bind-statement-5="if (#conversation.log.length) $(thisElem).triggerHandler('notify')"
+	bind-event-click="$(thisElem).triggerHandler('raise')">
+	<div class="title-bar"
+		bind-event-mousedown="#dragger.start(event)">
+		<div class="close-button"
+			bind-event-click="$(#viewRoot).triggerHandler('close')">x</div>
+		<img bind-statement-1="thisElem.src = #otherUser.sessions ? 'active.png' : 'inactive.png'" />
+		<span>{{#otherUser.name}}</span>
+	</div>
+	<div class="chat-log"
+		bind-statement-1="#conversation.log.length, setTimeout(function() {thisElem.scrollTop = thisElem.scrollHeight}, 0)"
+		bind-statement-2="#resizer.heightOf = thisElem"
+		bind-statement-3="if (#conversation.size) $(thisElem).height(#conversation.size.height)">
+		<div bind-repeater-i="#conversation.log.length"
+			bind-var-message="#conversation.log[#i]">
+			<div class="time-marker"
+				bind-statement-1="$(thisElem).toggle(#message.time != null)">{{#message.time && this.formatTime(#message.time)}}</div>
+			<div class="chat-entry"
+				bind-statement-1="$(thisElem).toggleClass('me', #message.sender.id != #otherUser.id)">{{#message.text}}</div>
+		</div>
+	</div>
+	<div class="chat-form">
+		<form bind-event-submit="if (thisElem.message.value) {$(#viewRoot).triggerHandler('send-chat', thisElem.message.value); thisElem.message.value=''}; return false">
+			<table>
+				<tr>
+				<td><input type="text" name="message" /></td>
+				<td style="width: 1%"><input type="submit" value="Send" /></td>
+				<td style="width: 1%"><img class="resize-icon" src="resize.png" bind-event-mousedown="#resizer.start(event)" /></td>
+				</tr>
+			</table>
+		</form>
+	</div>
+</div>
