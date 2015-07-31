@@ -1,30 +1,19 @@
 {
-  "name": "kenna",
-  "version": "0.1.4",
-  "description": "Not another MVC framework",
-  "keywords": ["mvc", "model", "view", "controller", "data", "binding", "template", "component", "framework"],
-  "homepage": "http://kenna-js.com",
+  "name": "databind",
+  "version": "0.0.2",
+  "description": "A powerful, flexible data binding library",
+  "keywords": ["mvc", "view", "data", "binding", "template", "component", "framework"],
   "license": "MIT",
   "author": "Hai Phan <hai.phan@gmail.com>",
   "repository": {
     "type": "git",
-    "url": "https://github.com/ken107/kenna-js"
+    "url": "https://github.com/ken107/databind-js"
   },
   "bugs": {
-    "url": "https://github.com/ken107/kenna-js/issues"
+    "url": "https://github.com/ken107/databind-js/issues"
   },
   "files": [
-    "supermodel.js",
 	"databind.js",
 	"examples"
-  ],
-  "dependencies": {
-    "commander": "^2.8.1",
-    "jsonpatch-observe": "^0.0.6",
-    "jsonpointer": "^1.1.0",
-    "ws": "^0.7.1"
-  },
-  "engines": {
-    "node": ">=0.11.13"
-  }
+  ]
 }
