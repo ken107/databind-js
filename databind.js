@@ -9,7 +9,7 @@
 	var regex = [
 		/{{[\s\S]*?}}/g,
 		/^\s*parts\[0\].get\(\)\s*$/,
-		/'.*?'|".*?"|#\w+(?:\.\w+|\[(?:.*?\[.*?\])*?[^\[]*?\])*(\s*(?:\+\+|--|\+=|-=|\*=|\/=|%=|=(?!=)))?/g,
+		/'.*?'|".*?"|#\w+(?:\.\w+|\[(?:.*?\[.*?\])*?[^\[]*?\])*(\s*(?:\+\+|--|\+=|-=|\*=|\/=|%=|=(?!=)|\())?/g,
 		/\.\w+|\[(?:.*?\[.*?\])*?[^\[]*?\]/g,
 		/\bthis\.(\w+)\s*\(/g,
 		/-([a-z])/g,
@@ -289,8 +289,14 @@
 				return "strings[" + (strings.length-1) + "]";
 			}
 			else if (operator) {
+				if (operator.slice(-1) == "(") {
+					parts.push({bindingSrc: bindingSrc.substring(1, bindingSrc.length-operator.length)});
+					return "(parts[" + (parts.length-1) + "].get() || noOp)" + operator;
+				}
+				else {
 				parts.push({bindingSrc: bindingSrc.substring(1, bindingSrc.length-operator.length), operator: operator});
 				return "parts[" + (parts.length-1) + "].value" + operator;
+				}
 			}
 			else if (pmap[bindingSrc]) return pmap[bindingSrc];
 			else {
@@ -303,7 +309,7 @@
 		expr = "var thisElem = scope.thisElem, event = scope.event;\n" + expr;
 		var func;
 		try {
-			func = new Function("data", "scope", "strings", "parts", expr);
+			func = new Function("noOp", "scope", "strings", "parts", expr);
 		}
 		catch (err) {
 			printDebug(debugInfo);
@@ -348,7 +354,7 @@
 		prop.set = illegalOp;
 		prop.get = function() {
 			try {
-				return c.func.call(context, data, scope, c.strings, parts);
+				return c.func.call(context, noOp, scope, c.strings, parts);
 			}
 			catch (err) {
 				printDebug(debugInfo);
