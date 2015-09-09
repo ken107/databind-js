@@ -722,7 +722,7 @@
 	/**
 	 * API
 	 */
-	var api = window.dataBinder = {
+	var api = {
 		directives: {				//you can change the names of the binding directives by modifying this object
 			bindView: "bind-view",
 			bindParameter: "bind-param-",
@@ -757,6 +757,9 @@
 			}
 	}
 	
-	if (window.jQuery) jQuery(onReady);
-	else document.addEventListener("DOMContentLoaded", onReady, false);
+	if (!window.dataBinder) {
+		window.dataBinder = api;
+		if (window.jQuery) jQuery(onReady);
+		else document.addEventListener("DOMContentLoaded", onReady, false);
+	}
 })();
