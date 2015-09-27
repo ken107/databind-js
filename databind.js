@@ -1,5 +1,5 @@
 /**
- * Kenna <kenna-js.com>
+ * DataBinder <https://github.com/ken107/databind-js>
  * Copyright 2015, Hai Phan <hai.phan@gmail.com>
  *
  * This source code is licensed under the MIT license found in the
@@ -94,7 +94,7 @@
 					dirs.toRemove.push(attr.name);
 				}
 				else if (attr.name.lastIndexOf(api.directives.bindEvent,0) == 0) {
-					dirs.events.push({name: attr.name.substr(api.directives.bindEvent.length), value: attr.value});
+					dirs.events.push({name: attr.name.substr(api.directives.bindEvent.length), value: "; " + attr.value});
 					dirs.toRemove.push(attr.name);
 				}
 				else if (attr.name.lastIndexOf(api.directives.bindRepeater,0) == 0) {
@@ -161,6 +161,10 @@
 		}
 	}
 	
+	function LazyEval(func) {
+		this.func = func;
+	}
+	
 	/**
 	 * Property
 	 */
@@ -169,6 +173,10 @@
 		var count = 0;
 		var keygen = 0;
 		this.get = function() {
+			return value;
+		};
+		this.getLazy = function() {
+			if (value instanceof LazyEval) value = value.func();
 			return value;
 		};
 		this.set = function(newValue) {
@@ -229,8 +237,8 @@
 				if (!desc || desc.configurable) Object.defineProperty(obj, name, {get: prop.get, set: prop.set, enumerable: true, configurable: isArrayIndex});
 				else {
 					if (name !== "length") api.console.warn("Object", obj, "property '" + name + "' is not configurable, change may not be detected");
-					prop.get = function() {return obj[name];};
-					prop.set = function(newValue) {if (newValue !== obj[name]) {obj[name] = newValue; prop.publish();}};
+					prop.get = fallbackGet;
+					prop.set = fallbackSet;
 				}
 			}
 		}
@@ -239,8 +247,17 @@
 			if (!desc || desc.configurable) Object.defineProperty(obj, name, {get: prop.get, set: prop.set, enumerable: true, configurable: false});
 			else {
 				api.console.warn("Object", obj, "property '" + name + "' is not configurable, change may not be detected");
-				prop.get = function() {return obj[name];};
-				prop.set = function(newValue) {if (newValue !== obj[name]) {obj[name] = newValue; prop.publish();}};
+				prop.get = fallbackGet;
+				prop.set = fallbackSet;
+			}
+		}
+		function fallbackGet() {
+			return obj[name];
+		}
+		function fallbackSet(newValue) {
+			if (newValue !== obj[name]) {
+				obj[name] = newValue;
+				prop.publish();
 			}
 		}
 		return prop;
@@ -517,14 +534,14 @@
 	/**
 	 * Binding
 	 */
-	function Binding(prop, onChange, onUnbind) {
+	function Binding(prop, onChange, onUnbind, synchronous) {
 		var subkey = null;
 		function notifyChange() {
 			if (subkey) onChange();
 		}
 		this.bind = function() {
 			if (subkey) throw new Error("Already bound");
-			subkey = prop.subscribe(function() {
+			subkey = prop.subscribe(synchronous ? notifyChange : function() {
 				callLater(notifyChange);
 			});
 			onChange();
@@ -710,9 +727,11 @@
 	
 	function bindParam(data, paramName, prop, bindingStore) {
 		if (prop.isExpr) {
-			var binding = new Binding(prop, function() {
-				data[paramName] = prop.get();
-			});
+			var paramProp = new Property();
+			paramProp.get = paramProp.getLazy;
+			setProp(data, paramName, paramProp);
+			var lazy = new LazyEval(prop.get);
+			var binding = new Binding(prop, function() {paramProp.set(lazy);}, null, true);
 			binding.bind();
 			bindingStore.bindings.push(binding);
 		}
