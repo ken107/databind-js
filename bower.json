@@ -1,0 +1,30 @@
+{
+  "name": "databinder",
+  "version": "0.0.3",
+  "description": "A powerful, flexible data binding library",
+  "main": "databind.js",
+  "moduleType": [
+    "globals"
+  ],
+  "keywords": [
+    "mvc",
+    "view",
+    "data",
+    "binding",
+    "template",
+    "component",
+    "framework"
+  ],
+  "authors": [
+    "Hai Phan <hai.phan@gmail.com>"
+  ],
+  "license": "MIT",
+  "homepage": "https://github.com/ken107/databind-js",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ]
+}
