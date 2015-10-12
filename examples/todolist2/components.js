@@ -4,22 +4,11 @@ function Filters() {
 }
 
 function TodoList() {
-	this.filterItems = function(items, currentFilter) {
-		return items.filter(function(item) {
-			return currentFilter == 'All' ||
-				currentFilter == 'Active' && !item.completed ||
-				currentFilter == 'Completed' && !!item.completed;
-		})
-	}
-	this.isAllCompleted = function(items) {
-		return items.length && items.every(function(item) {return item.completed});
-	}
-	this.isSomeCompleted = function(items) {
-		return items.some(function(item) {return item.completed});
-	}
-	this.countIncomplete = function(items) {
-		return items.filter(function(item) {return !item.completed}).length;
-	}
+	this.isItemVisible = function(isCompleted, currentFilter) {
+		return currentFilter == 'All' ||
+			currentFilter == 'Active' && !isCompleted ||
+			currentFilter == 'Completed' && isCompleted;
+	};
 }
 
 function TodoItem() {

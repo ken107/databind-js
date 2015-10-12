@@ -25,10 +25,3 @@
 	float: right;
 	cursor: pointer;
 }
-
-.clear-completed {
-	width: 320px;
-}
-.clear-completed input {
-	float: right;
-}

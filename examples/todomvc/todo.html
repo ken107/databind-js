@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<style>
+		body {
+			font-family: Arial;
+		}
+		ul {
+			width: 300px;
+			padding: 10px;
+			list-style: none;
+			line-height: 30px;
+			background: #f3f3f3;
+		}
+		li > .text, li > input[type=text] {
+			width: 250px;
+		}
+		.delete-button {
+			float: right;
+			cursor: pointer;
+		}
+		.filter {
+			margin-right: 10px;
+		}
+		.filter:not(.active) {
+			color: blue;
+			cursor: pointer;
+			text-decoration: underline;
+		}
+		.clear-completed {
+			width: 320px;
+		}
+		.clear-completed input {
+			float: right;
+		}
+	</style>
+	<script src="../../databind.js"></script>
+	<script>
+		items = [];
+		editItem = null;
+		filters = ["All", "Active", "Completed"];
+		currentFilter = "All";
+		updateFlag = 0;
+		
+		function toggleClass(elem, className, toggle) {
+			if (toggle) elem.className += " " + className;
+			else elem.className = elem.className.replace(new RegExp("(?:^|\\s)" + className + "(?!\\S)", "g"), "");
+		}
+		function setVisible(elem, toggle) {
+			elem.style.display = toggle ? "" : "none";
+		}
+	</script>
+</head>
+<body>
+	<h1>TODO</h1>
+	<div>
+		<span class="filter"
+			bind-repeater-i="#filters.length"
+			bind-statement-1="toggleClass(thisElem, 'active', #currentFilter == #filters[#i])"
+			bind-event-click="#currentFilter = #filters[#i]">{{#filters[#i]}}</span>
+	</div>
+	<ul bind-var-filtered-items="#updateFlag, #items.filter(function(item) {return #currentFilter == 'All' || #currentFilter == 'Active' && !item.completed || #currentFilter == 'Completed' && item.completed})">
+		<li>
+			<input type="checkbox"
+				bind-statement-1="thisElem.disabled = !#items.length"
+				bind-statement-2="#updateFlag, thisElem.checked = #items.length && #items.every(function(item) {return item.completed})"
+				bind-event-change="#items.forEach(function(item) {item.completed = thisElem.checked})" />
+			<input type="text" placeholder="What to do?"
+				bind-event-keypress="if (event.which == 13) {#items.push({text: thisElem.value}); thisElem.value = ''; return false}" />
+		</li>
+		<li bind-repeater-i="#filteredItems.length"
+			bind-var-item="#filteredItems[#i]">
+			<div class="delete-button"
+				bind-event-click="#items.splice(#items.indexOf(#item), 1)">X</div>
+			<input type="checkbox"
+				bind-statement-1="thisElem.checked = #item.completed"
+				bind-event-change="#item.completed = thisElem.checked" />
+			<span class="text"
+				bind-statement-1="thisElem.style.display = #item != #editItem ? 'inline-block' : 'none'"
+				bind-statement-2="thisElem.style.textDecoration = #item.completed ? 'line-through' : 'none'"
+				bind-event-click="#editItem = #item">{{#item.text}}</span>
+			<input type="text"
+				bind-statement-1="thisElem.value = #item.text"
+				bind-statement-2="setVisible(thisElem, #item == #editItem)"
+				bind-statement-3="if (#item == #editItem) thisElem.focus()"
+				bind-event-keyup="if (event.which == 27) #editItem = null"
+				bind-event-keypress="if (event.which == 13) {#item.text = thisElem.value; #editItem = null; return false}" />
+		</li>
+	</ul>
+	<div class="clear-completed"
+		bind-statement-1="#updateFlag, setVisible(thisElem, #items.some(function(item) {return item.completed}))">
+		<input type="button" value="Clear Completed"
+			bind-event-click="#items = #items.filter(function(item) {return !item.completed})" />
+	</div>
+	<div>
+		{{#updateFlag, #items.filter(function(item) {return !item.completed}).length}} remaining
+	</div>
+	<!-- the following detects when items are added/deleted or when their completed state change and set the updateFlag -->
+	<div bind-statement-1="#items.length, #updateFlag++">
+		<div bind-repeater-i="#items.length"
+			bind-statement-1="#items[#i].completed, #updateFlag++"></div>
+	</div>
+</body>
+</html>

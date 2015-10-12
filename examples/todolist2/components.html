@@ -5,9 +5,7 @@
 		bind-repeater-i="#filters.length"
 		bind-var-filter="#filters[#i]"
 		bind-statement-1="toggleClass(thisElem, 'active', #currentFilter == #filter)"
-		bind-event-click="dispatchEvent(#viewRoot, 'setFilter', #filter)">
-		{{#filter}}
-	</span>
+		bind-event-click="dispatchEvent(#viewRoot, 'setFilter', #filter)">{{#filter}}</span>
 </div>
 
 
@@ -21,9 +19,7 @@
 	<span class="text"
 		bind-statement-1="thisElem.style.display = #editMode ? 'none' : 'inline-block'"
 		bind-statement-2="thisElem.style.textDecoration = #completed ? 'line-through' : 'none'"
-		bind-event-click="dispatchEvent(#viewRoot, 'startEdit')">
-		{{#text}}
-	</span>
+		bind-event-click="dispatchEvent(#viewRoot, 'startEdit')">{{#text}}</span>
 	<input type="text"
 		bind-statement-1="thisElem.value = #text"
 		bind-statement-2="thisElem.style.display = #editMode ? '' : 'none'"
@@ -35,25 +31,22 @@
 
 <div data-view-name="TodoList" class="todo-list"
 	bind-var-view-root="thisElem"
-	bind-var-update-flag="0"
 	bind-var-current-filter="'All'">
 	<h1>TODO</h1>
 	<div bind-view="Filters"
 		bind-param-current-filter="#currentFilter"
 		bind-event-set-filter="#currentFilter = event.data">
 	</div>
-	<ul bind-var-filtered-items="#updateFlag, this.filterItems(#items, #currentFilter)"
-		bind-var-edit-item="null">
+	<ul bind-var-edit-item="null">
 		<li>
 			<input type="checkbox"
-				bind-statement-1="#updateFlag, thisElem.checked = this.isAllCompleted(#items)"
 				bind-statement-2="thisElem.disabled = !#items.length"
 				bind-event-change="dispatchEvent(#viewRoot, 'setAllCompleted', thisElem.checked)" />
 			<input type="text" placeholder="What to do?"
 				bind-event-keypress="if (event.which == 13) {dispatchEvent(#viewRoot, 'addItem', thisElem.value); thisElem.value = ''; return false}" />
 		</li>
-		<li bind-repeater-i="#filteredItems.length"
-			bind-var-item="#filteredItems[#i]"
+		<li bind-repeater-i="#items.length"
+			bind-var-item="#items[#i]"
 			bind-view="TodoItem"
 			bind-param-text="#item.text"
 			bind-param-completed="#item.completed"
@@ -62,20 +55,11 @@
 			bind-event-stop-edit="#editItem = null"
 			bind-event-set-completed="dispatchEvent(#viewRoot, 'setCompleted', {item: #item, completed: event.data})"
 			bind-event-set-text="dispatchEvent(#viewRoot, 'setText', {item: #item, text: event.data})"
-			bind-event-delete-item="dispatchEvent(#viewRoot, 'deleteItem', #item)">
-		</li>
+			bind-event-delete-item="dispatchEvent(#viewRoot, 'deleteItem', #item)"
+			bind-statement-1="thisElem.style.display = this.isItemVisible(#item.completed, #currentFilter) ? '' : 'none'"></li>
 	</ul>
-	<div class="clear-completed"
-		bind-statement-1="#updateFlag, thisElem.style.display = this.isSomeCompleted(#items) ? '' : 'none'">
+	<div>
 		<input type="button" value="Clear Completed"
 			bind-event-click="dispatchEvent(#viewRoot, 'clearCompleted')" />
-	</div>
-	<div>
-		{{#updateFlag, this.countIncomplete(#items)}} remaining
-	</div>
-	<!-- the following detects when items are added/deleted or when their completed state change and set the updateFlag -->
-	<div bind-statement-1="#items.length, #updateFlag++">
-		<div bind-repeater-i="#items.length"
-			bind-statement-1="#items[#i].completed, #updateFlag++"></div>
 	</div>
 </div>
