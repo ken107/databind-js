@@ -25,13 +25,16 @@
 	var callLater = (function() {
 		var queue = null;
 		function call() {
-			var funcs = queue;
-			queue = null;
-			for (var i=0; i<funcs.length; i++) funcs[i].called = false;
-			for (var i=0; i<funcs.length; i++) if (!funcs[i].called) {
-				funcs[i]();
-				funcs[i].called = true;
+			while (queue.length) {
+				var funcs = queue;
+				queue = [];
+				for (var i=0; i<funcs.length; i++) funcs[i].called = false;
+				for (var i=0; i<funcs.length; i++) if (!funcs[i].called) {
+					funcs[i]();
+					funcs[i].called = true;
+				}
 			}
+			queue = null;
 		}
 		return function(func) {
 			if (!queue) {
