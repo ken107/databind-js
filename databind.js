@@ -13,7 +13,7 @@
 		/\.\w+|\[(?:.*?\[.*?\])*?[^\[]*?\]/g,
 		/\bthis\.(\w+)\s*\(/g,
 		/-([a-z])/g,
-		/;\s*\S|^\s*if\b/,
+		/;\s*\S/,
 		/^\d+$/
 	];
 	var propPrefix = "__prop__";
@@ -93,7 +93,7 @@
 					dirs.toRemove.push(attr.name);
 				}
 				else if (attr.name.lastIndexOf(api.directives.bindStatement,0) == 0) {
-					dirs.statements.push({value: attr.value});
+					dirs.statements.push({value: "; " + attr.value});
 					dirs.toRemove.push(attr.name);
 				}
 				else if (attr.name.lastIndexOf(api.directives.bindEvent,0) == 0) {
