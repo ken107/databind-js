@@ -1,6 +1,6 @@
 {
   "name": "databind",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "description": "A powerful, flexible data binding library",
   "keywords": ["mvc", "view", "data", "binding", "template", "component", "framework"],
   "license": "MIT",
@@ -12,6 +12,7 @@
   "bugs": {
     "url": "https://github.com/ken107/databind-js/issues"
   },
+  "main": "databind.js",
   "files": [
 	"databind.js",
 	"examples"
