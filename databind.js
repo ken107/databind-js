@@ -274,6 +274,9 @@
 		arr.shift = proxy(arr.alter, arr, arr.shift);
 		arr.unshift = proxy(arr.alter, arr, arr.unshift);
 		arr.splice = proxy(arr.alter, arr, arr.splice);
+		arr.reverse = proxy(arr.alter, arr, arr.reverse);
+		arr.sort = proxy(arr.alter, arr, arr.sort);
+		if (arr.fill) arr.fill = proxy(arr.alter, arr, arr.fill);
 	}
 	
 	function alterArray(func) {
