@@ -28,19 +28,21 @@
 			while (queue.length) {
 				var funcs = queue;
 				queue = [];
-				for (var i=0; i<funcs.length; i++) funcs[i].called = false;
-				for (var i=0; i<funcs.length; i++) if (!funcs[i].called) {
+				for (var i=0; i<funcs.length; i++) funcs[i].cl_called = false;
+				for (var priority=1; priority<=3; priority++)
+				for (var i=0; i<funcs.length; i++) if (funcs[i].cl_priority == priority && !funcs[i].cl_called) {
 					funcs[i]();
-					funcs[i].called = true;
+					funcs[i].cl_called = true;
 				}
 			}
 			queue = null;
 		}
-		return function(func) {
+		return function(func, priority) {
 			if (!queue) {
 				queue = [];
 				setTimeout(call, 0);
 			}
+			func.cl_priority = priority;
 			queue.push(func);
 		};
 	})();
@@ -540,23 +542,24 @@
 	/**
 	 * Binding
 	 */
-	function Binding(prop, onChange, onUnbind, synchronous) {
+	function Binding(prop, priority) {	//priority 0=synchronous 1,2,3=asynchronous
+		var self = this;
 		var subkey = null;
 		function notifyChange() {
-			if (subkey) onChange();
+			if (subkey) self.onChange();
 		}
 		this.bind = function() {
 			if (subkey) throw new Error("Already bound");
-			subkey = prop.subscribe(synchronous ? notifyChange : function() {
-				callLater(notifyChange);
+			subkey = prop.subscribe(priority == 0 ? notifyChange : function() {
+				callLater(notifyChange, priority);
 			});
-			onChange();
+			self.onChange();
 		};
 		this.unbind = function() {
 			if (subkey) {
 				prop.unsubscribe(subkey);
 				subkey = null;
-				if (onUnbind) onUnbind();
+				if (self.onUnbind) self.onUnbind();
 			}
 		};
 		this.isBound = function() {
@@ -643,7 +646,9 @@
 				removeDirectives(node, dirs);
 					var repeater = new Repeater(dirs.repeater.name, node, data, context, debugInfo);
 					var prop = evalExpr(dirs.repeater.value, data, context, {}, debugInfo);
-					var binding = new Binding(prop, function() {repeater.update(prop.get());}, function() {repeater.update(0);});
+					var binding = new Binding(prop, 1);
+					binding.onChange = function() {repeater.update(prop.get())};
+					binding.onUnbind = function() {repeater.update(0)};
 					binding.bind();
 					bindingStore.bindings.push(binding);
 			}
@@ -654,7 +659,9 @@
 						api.console.warn("View '" + viewName + "' is not ready");
 						var repeater = new Repeater(null, node, data, context, debugInfo);
 						var prop = evalExpr("#views['" + viewName + "']", api, null, {}, debugInfo);
-						var binding = new Binding(prop, function() {repeater.update(prop.get() ? 1 : 0);}, function() {repeater.update(0);});
+						var binding = new Binding(prop, 1);
+						binding.onChange = function() {repeater.update(prop.get() ? 1 : 0)};
+						binding.onUnbind = function() {repeater.update(0)};
 						binding.bind();
 						bindingStore.bindings.push(binding);
 						return;
@@ -671,7 +678,8 @@
 					if (extendedData) data = extendedData;
 					for (var i=0; i<dirs.statements.length; i++) {
 							var prop = evalExpr(dirs.statements[i].value, data, context, {thisElem: node}, debugInfo);
-							var binding = new Binding(prop, prop.get);
+							var binding = new Binding(prop, 2);
+							binding.onChange = prop.get;
 							binding.bind();
 							bindingStore.bindings.push(binding);
 						}
@@ -700,7 +708,8 @@
 				if (extendedData) data = extendedData;
 				for (var i=0; i<dirs.statements.length; i++) {
 						var prop = evalExpr(dirs.statements[i].value, data, context, {thisElem: node}, debugInfo);
-						var binding = new Binding(prop, prop.get);
+						var binding = new Binding(prop, 2);
+						binding.onChange = prop.get;
 						binding.bind();
 						bindingStore.bindings.push(binding);
 					}
@@ -720,11 +729,12 @@
 		else if (node.nodeType == 3) {
 			var prop = evalText(node.nodeValue, data, context, {thisElem: node}, debugInfo);
 			if (prop) {
-				var binding = new Binding(prop, function() {
+				var binding = new Binding(prop, 3);
+				binding.onChange = function() {
 					var textarea = document.createElement("textarea");
 					textarea.innerHTML = prop.get();
 					node.nodeValue = textarea.value;
-				});
+				};
 				binding.bind();
 				bindingStore.bindings.push(binding);
 			}
@@ -737,7 +747,8 @@
 			paramProp.get = paramProp.getLazy;
 			setProp(data, paramName, paramProp);
 			var lazy = new LazyEval(prop.get);
-			var binding = new Binding(prop, function() {paramProp.set(lazy);}, null, true);
+			var binding = new Binding(prop, 0);
+			binding.onChange = function() {paramProp.set(lazy)};
 			binding.bind();
 			bindingStore.bindings.push(binding);
 		}
