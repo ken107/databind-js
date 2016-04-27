@@ -639,7 +639,7 @@
 	}
 	
 	function dataBind(node, data, context, bindingStore, debugInfo) {
-		if (node.nodeType == 1) {
+		if (node.nodeType == 1 && node.tagName != "TEMPLATE") {
 			if (api.onDataBinding) api.onDataBinding(node);
 			var dirs = getDirectives(node);
 			if (dirs.repeater) {
