@@ -18,7 +18,7 @@
 	];
 	var propPrefix = "__prop__";
 	var exprCache = {};
-	
+
 	/**
 	 * Helpers
 	 */
@@ -46,7 +46,7 @@
 			queue.push(func);
 		};
 	})();
-	
+
 	var timer = new function() {
 		var queue = null;
 		var counter = 0;
@@ -76,7 +76,7 @@
 			if (queue) delete queue[id];
 		};
 	};
-	
+
 	function getDirectives(node) {
 		var dirs = {params: [], vars: [], statements: [], events: [], toRemove: []};
 		for (var i=0; i<node.attributes.length; i++) {
@@ -111,35 +111,35 @@
 		}
 		return dirs;
 	}
-	
+
 	function removeDirectives(node, dirs) {
 		for (var i=0; i<dirs.toRemove.length; i++) node.removeAttribute(dirs.toRemove[i]);
 	}
-	
+
 	function toCamelCase(str) {
 		return str.replace(regex[5], function(g) {
 			return g[1].toUpperCase();
 		});
 	}
-	
+
 	function noOp() {
 	}
-	
+
 	function illegalOp() {
 		throw new Error("Illegal operation");
 	}
-	
+
 	function printDebug(debugInfo) {
 		if (debugInfo.length) api.console.log(debugInfo);
 	}
-	
+
 	function proxy(func, ctx) {
 		var args = Array.prototype.slice.call(arguments, 2);
 		return function() {
 			return func.apply(ctx, args.concat(Array.prototype.slice.call(arguments)));
 		};
 	}
-	
+
 	function makeEventHandler(node, type, scope, prop) {
 		function handler(event) {
 			scope.event = event;
@@ -165,11 +165,7 @@
 			if (camel != type) node.addEventListener(camel, handler, false);
 		}
 	}
-	
-	function LazyEval(func) {
-		this.func = func;
-	}
-	
+
 	/**
 	 * Property
 	 */
@@ -178,10 +174,6 @@
 		var count = 0;
 		var keygen = 0;
 		this.get = function() {
-			return value;
-		};
-		this.getLazy = function() {
-			if (value instanceof LazyEval) value = value.func();
 			return value;
 		};
 		this.set = function(newValue) {
@@ -207,22 +199,22 @@
 			for (var i in subscribers) subscribers[i]();
 		};
 	}
-	
+
 	function extend(data) {
 		return {__extends__: data};
 	}
-	
+
 	function getPropExt(obj, name) {
 		if (obj[propPrefix+name]) return obj[propPrefix+name];
 		else if (name in obj) return convertToProperty(obj, name);
 		else if (obj.__extends__) return getPropExt(obj.__extends__, name);
 		else return null;
 	}
-	
+
 	function getProp(obj, name) {
 		return obj[propPrefix+name] || convertToProperty(obj, name);
 	}
-	
+
 	function setProp(obj, name, prop) {
 		if (prop instanceof Property) {
 			Object.defineProperty(obj, propPrefix+name, {value: prop, writable: false, enumerable: false, configurable: false});
@@ -230,7 +222,7 @@
 		}
 		else throw new Error("Not a Property object");
 	}
-	
+
 	function convertToProperty(obj, name) {
 		var prop = new Property(obj[name]);
 		Object.defineProperty(obj, propPrefix+name, {value: prop, writable: false, enumerable: false, configurable: false});
@@ -267,7 +259,7 @@
 		}
 		return prop;
 	}
-	
+
 	function observeArray(arr) {
 		if (arr.alter) return;
 		arr.alter = alterArray;
@@ -280,7 +272,7 @@
 		arr.sort = proxy(arr.alter, arr, arr.sort);
 		if (arr.fill) arr.fill = proxy(arr.alter, arr, arr.fill);
 	}
-	
+
 	function alterArray(func) {
 		var len = this.length;
 		var val = func.apply(this, Array.prototype.slice.call(arguments, 1));
@@ -297,7 +289,7 @@
 		}
 		return val;
 	}
-	
+
 	/**
 	 * Expression
 	 */
@@ -348,7 +340,7 @@
 			func: func
 		};
 	}
-	
+
 	function evalExpr(str, data, context, scope, debugInfo) {
 		debugInfo = debugInfo.concat("{{" + str + "}}");
 		var c = exprCache[str] || (exprCache[str] = parseExpr(str, debugInfo));
@@ -369,7 +361,7 @@
 			else parts.push(prop);
 		}
 		if (c.isSinglePart) return parts[0];
-		
+
 		var keys = new Array(parts.length);
 		var prop = new Property(null, function(subscribed) {
 			if (subscribed) for (var i=0; i<parts.length; i++) subscribePart(parts[i], i);
@@ -386,7 +378,7 @@
 				throw err;
 			}
 		};
-		
+
 		function subscribePart(part, i) {
 			keys[i] = part.subscribe(prop.publish);
 		}
@@ -395,13 +387,13 @@
 		}
 		return prop;
 	}
-	
+
 	function evalText(str, data, context, scope, debugInfo) {
 		var exprs = str.match(regex[0]);
 		if (!exprs) return null;
 		var parts = new Array(exprs.length);
 		for (var i=0; i<exprs.length; i++) parts[i] = evalExpr(exprs[i].substr(2, exprs[i].length-4), data, context, scope, debugInfo);
-		
+
 		var keys = new Array(parts.length);
 		var prop = new Property(null, function(subscribed) {
 			if (subscribed) for (var i=0; i<parts.length; i++) subscribePart(parts[i], i);
@@ -415,7 +407,7 @@
 				return val != null ? String(val) : "";
 			});
 		};
-		
+
 		function subscribePart(part, i) {
 			keys[i] = part.subscribe(prop.publish);
 		}
@@ -424,7 +416,7 @@
 		}
 		return prop;
 	}
-	
+
 	function evalBindingSrc(str, data, context, scope, debugInfo) {
 		var path = ("." + str).match(regex[3]);
 		var derefs = new Array(path.length);
@@ -439,11 +431,11 @@
 			throw new Error("Missing binding source for #" + str);
 		}
 		if (parts.length == 1) return parts[0];
-		
+
+		var curVal;
 		var derefKeys = new Array(path.length);
 		var keys = new Array(path.length);
 		var isSubscribed = false;
-		var changeIndex = 999;
 		var prop = new Property(null, function(subscribed) {
 			isSubscribed = subscribed;
 			if (subscribed) {
@@ -467,25 +459,19 @@
 		};
 		prop.get = function() {
 			if (!isSubscribed) buildParts();
-			else if (changeIndex != 999) {
-				rebuildPartsFrom(changeIndex);
-				changeIndex = 999;
-			}
-			var val = parts[parts.length-1];
-			if (val instanceof Property) val = val.get();
-			if (val instanceof Function) {
+			if (curVal instanceof Function) {
 				var ctx = context;
 				if (parts.length > 1) {
 					ctx = parts[parts.length-2];
 					if (ctx instanceof Property) ctx = ctx.get();
 				}
 				return function() {
-					return val.apply(ctx, arguments);
+					return curVal.apply(ctx, arguments);
 				};
 			}
-			else return val;
+			else return curVal;
 		};
-		
+
 		function evalPart(i) {
 			var val = parts[i-1] instanceof Property ? parts[i-1].get() : parts[i-1];
 			if (val instanceof Object) {
@@ -501,6 +487,7 @@
 		function buildParts() {
 			for (var i=1; i<parts.length; i++)
 				parts[i] = evalPart(i);
+			curVal = parts[parts.length-1] instanceof Property ? parts[parts.length-1].get() : parts[parts.length-1];
 		}
 		function rebuildPartsFrom(index) {
 			for (var i=index; i<parts.length; i++) {
@@ -510,21 +497,23 @@
 					parts[i] = val;
 					subscribePart(val, i);
 				}
+				else return false;
 			}
+			var oldVal = curVal;
+			curVal = parts[parts.length-1] instanceof Property ? parts[parts.length-1].get() : parts[parts.length-1];
+			return curVal !== oldVal;
 		}
 		function subscribePart(part, i) {
 			if (part instanceof Property) {
 				keys[i] = part.subscribe(function() {
-					if (changeIndex > i+1) changeIndex = i+1;
-					prop.publish();
+					if (rebuildPartsFrom(i+1)) prop.publish();
 				});
 			}
 		}
 		function subscribeDeref(deref, i) {
 			if (deref instanceof Property) {
 				derefKeys[i] = deref.subscribe(function() {
-					if (changeIndex > i) changeIndex = i;
-					prop.publish();
+					if (rebuildPartsFrom(i)) prop.publish();
 				});
 			}
 		}
@@ -538,7 +527,7 @@
 		}
 		return prop;
 	}
-	
+
 	/**
 	 * Binding
 	 */
@@ -566,7 +555,7 @@
 			return Boolean(subkey);
 		};
 	}
-	
+
 	function BindingStore() {
 		this.bindings = [];
 		this.unbind = function() {
@@ -576,7 +565,7 @@
 			for (var i=0; i<this.bindings.length; i++) this.bindings[i].bind();
 		};
 	}
-	
+
 	function Repeater(name, node, data, context, debugInfo) {
 		var parent = node.parentNode;
 		var tail = node.nextSibling;
@@ -637,7 +626,7 @@
 			}
 		}
 	}
-	
+
 	function dataBind(node, data, context, bindingStore, debugInfo) {
 		if (node.nodeType == 1 && node.tagName != "TEMPLATE") {
 			if (api.onDataBinding) api.onDataBinding(node);
@@ -740,21 +729,17 @@
 			}
 		}
 	}
-	
+
 	function bindParam(data, paramName, prop, bindingStore) {
 		if (prop.isExpr) {
-			var paramProp = new Property();
-			paramProp.get = paramProp.getLazy;
-			setProp(data, paramName, paramProp);
-			var lazy = new LazyEval(prop.get);
 			var binding = new Binding(prop, 0);
-			binding.onChange = function() {paramProp.set(lazy)};
+			binding.onChange = function() {data[paramName] = prop.get()};
 			binding.bind();
 			bindingStore.bindings.push(binding);
 		}
 		else setProp(data, paramName, prop);
 	}
-	
+
 	/**
 	 * API
 	 */
@@ -783,7 +768,7 @@
 		},
 		console: window.console || {log: noOp, warn: noOp}
 	};
-	
+
 	function onReady() {
 			if (api.autoBind) {
 				api.console.log("Auto binding document, to disable auto binding set dataBinder.autoBind to false");
@@ -792,7 +777,7 @@
 				api.console.log("Finished binding document", new Date().getTime()-startTime, "ms");
 			}
 	}
-	
+
 	if (!window.dataBinder) {
 		window.dataBinder = api;
 		if (window.jQuery) jQuery(onReady);
