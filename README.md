@@ -75,6 +75,6 @@ delete a.b;
 //etc.
 ```
 
-A quick example: http://jsfiddle.net/wcoczs50/
+A quick example: http://jsfiddle.net/wcoczs50/4/
 
 Proceed to the [documentation](https://github.com/ken107/databind-js/wiki/Home) for the full list of binding constructs.
