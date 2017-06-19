@@ -501,7 +501,7 @@
 			}
 			var oldVal = curVal;
 			curVal = parts[parts.length-1] instanceof Property ? parts[parts.length-1].get() : parts[parts.length-1];
-			return curVal !== oldVal;
+			return curVal !== oldVal || curVal instanceof Function;
 		}
 		function subscribePart(part, i) {
 			if (part instanceof Property) {
