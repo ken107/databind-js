@@ -1,7 +1,5 @@
 ## What's This?
-In the context of MVVM, data binding is used to detect changes to the ViewModel and react by updating the View.
-
-If you're confused about MVVM, MVC, MVP, MVVMC, or whatever, don't worry.  You don't need to understand them to use this library.  Simply, this library lets you listen for changes to your data (ViewModel), and do something about it, such as manipulating the DOM (View).
+Data binding allows you to detect changes to your data and react by updating the DOM.
 
 ## How To Use
 First add databind.js to your page.
@@ -10,71 +8,64 @@ First add databind.js to your page.
 ```
 Or `bower install databinder`.
 
-##### Detecting Changes To The ViewModel
-This library assumes your ViewModel is whatever `this` points to, which is by default your window object.
-* Say your window object has a property _a_, then you can bind to _a_ like this: `#a`
-* You can bind to some property of _a_ like this: `#a.b`
-* In fact, you can bind any depth into _a_'s object tree: `#a.b.c[0].d.e`
-* The array index can be another binding expression: `#a.b.c[Math.round(#x/2)+1].d.e`
+##### Detecting Changes To Your Data
+Your data is whatever `this` points to, which is by the default the `window` object.  Say your window object has the following property:
+```javascript
+window.blog = {
+	name: "My blog",
+	entries: [
+		{ title: "...", text: "...", isPublished: true },
+		{ title: "...", text: "...", isPublished: false }
+	]
+}
+```
+To bind to the text of the first blog entry, for example, use the _binding expression_ `#blog.entries[0].text`.
 
-##### Updating Your View
-Using `#a.b.c[0].d.e` as an example, say you want to to set the text inside a DIV
+##### Updating the DOM
+Set the text content of an element
 ```html
-<div>The value is {{#a.b.c[0].d.e}}</div>
+<h2>{{#blog.entries[0].title}}</h2>
+<p>{{#blog.entries[0].text}}</p>
 ```
 
-Say you want to hide the DIV if the value is NULL
+Hide/show an element
 ```html
-<div bind-statement-1="thisElem.style.display = (#a.b.c[0].d.e == null) ? 'none' : 'block'">
-	Hello, world
+<div bind-statement-1="thisElem.style.display = #blog.entries[0].isPublished ? 'block' : 'none'">
+	{{#blog.entries[0].text}}
 </div>
 ```
 
-Change an image dynamically
+Change an image
 ```html
-<img bind-statement-1="thisElem.src = #a.b.c[0].d.e ? 'checked.png' : 'unchecked.png'" />
+<img bind-statement-1="thisElem.src = #blog.entries[0].isPublished ? 'checked.png' : 'unchecked.png'" />
 ```
 
-Toggle a class (using jQuery)
+Toggle a CSS class (using jQuery)
 ```html
-<li bind-statement-1="$(thisElem).toggleClass('active', #a.b.c[0].d.e)">
-	Menu item
+<li bind-statement-1="$(thisElem).toggleClass('published', #blog.entries[0].isPublished)">
+	{{#blog.entries[0].title}}
 </li>
 ```
 
 Call a function
 ```html
-<div bind-statement-1="setDivHeight(thisElem, #a.b.c[0].d.e)"></div>
+<div bind-statement-1="doSomething(#blog.entries[0].text)"></div>
 ```
 
 Say you want to repeat an element a number of times
 ```html
-<div bind-repeater-i="#a.b.c.length">Value is {{#a.b.c[#i].d.e}}</div>
+<div bind-repeater-i="#blog.entries.length">{{#blog.entries[#i].text}}</div>
 ```
 
 Set the value of an text box
 ```html
-<input type="text" bind-statement-1="thisElem.value = #a.b.c[0].d.e" />
+<input type="text" bind-statement-1="thisElem.value = #blog.entries[0].title" />
 ```
 
-Or a checkbox
-```html
-<input type="checkbox" bind-statement-1="thisElem.checked = #a.b.c[0].d.e" />
-```
+Etcetera.
 
-Remember these are bound to your data, so if the value of `a.b.c[0].d.e` changes your DOM will automatically be updated.  For example, any of the following will cause an update:
-```javascript
-a = ...;
-a.b = ...;
-a.b.c = [...];
-a.b.c[0] = ...;
-a.b.c.shift();
-a.b.c[0].d = ...;
-a.b.c[0].d.e = ...;
-delete a.b;
-//etc.
-```
+The `bind-statement` specifies a JavaScript statement that should be executed every time your data changes.  It is one of SIX _binding directives_ that together let you write responsive apps of any complexity.  They're no less capable than Angular or React.
 
 A quick example: http://jsfiddle.net/wcoczs50/4/
 
-Proceed to the [documentation](https://github.com/ken107/databind-js/wiki/Home) for the full list of binding constructs.
+Proceed to the [documentation](https://github.com/ken107/databind-js/wiki/Home) for the full list of binding directives.
