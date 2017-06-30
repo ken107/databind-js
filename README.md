@@ -1,14 +1,14 @@
 ## What's This?
 Data binding allows you to detect changes to your data and react by updating the DOM.
 
-## How To Use
+## Installation
 First add databind.js to your page.
 ```html
 <script src="http://cdn.rawgit.com/ken107/databind-js/master/databind.js"></script>
 ```
 Or `bower install databinder`.
 
-##### Detecting Changes To Your Data
+## Detecting Changes To Your Data
 Your data is whatever `this` points to, which is by the default the `window` object.  Say your window object has the following property:
 ```javascript
 window.blog = {
@@ -21,7 +21,7 @@ window.blog = {
 ```
 To bind to the text of the first blog entry, for example, use the _binding expression_ `#blog.entries[0].text`.
 
-##### Updating the DOM
+## Updating the DOM
 Set the text content of an element
 ```html
 <h2>{{#blog.entries[0].title}}</h2>
@@ -66,6 +66,7 @@ Etcetera.
 
 The `bind-statement` specifies a JavaScript statement that should be executed every time your data changes.  It is one of SIX _binding directives_ that together let you write responsive apps of any complexity.  They're no less capable than Angular or React.
 
-A quick example: http://jsfiddle.net/wcoczs50/4/
-
 Proceed to the [documentation](https://github.com/ken107/databind-js/wiki/Home) for the full list of binding directives.
+
+## Example
+http://jsfiddle.net/wcoczs50/4/
