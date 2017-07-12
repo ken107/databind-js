@@ -497,8 +497,17 @@
 					parts[i] = val;
 					subscribePart(val, i);
 				}
-				else return false;
+				else {
+					//if new part is same as old part, then consider the binding's value UNCHANGED, unless
+					//this part is the last part and is a function, then consider it CHANGED (because
+					//even though it is the same function, it will be executed in a different context)
+					if (val instanceof Function && i == parts.length-1) return true;
+					else return false;
+				}
 			}
+			//if we get here, it means the last part itself has been rebuilt, so we just re-eval the
+			//last part to determine if the binding's value has changed. If the last part evals to a
+			//function, we always consider it CHANGED (for the reason explained previously)
 			var oldVal = curVal;
 			curVal = parts[parts.length-1] instanceof Property ? parts[parts.length-1].get() : parts[parts.length-1];
 			return curVal !== oldVal || curVal instanceof Function;
