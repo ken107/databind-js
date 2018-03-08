@@ -1,6 +1,6 @@
 {
   "name": "databind",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "description": "A powerful, flexible data binding library",
   "keywords": ["mvc", "view", "data", "binding", "template", "component", "framework"],
   "license": "MIT",
