@@ -62,9 +62,9 @@ Set the value of an text box
 <input type="text" bind-statement-1="thisElem.value = #blog.entries[0].title" />
 ```
 
-Etcetera.
+Et cetera.
 
-The `bind-statement` specifies a JavaScript statement that should be executed every time your data changes.  It is one of SIX _binding directives_ that together let you write responsive apps of any complexity.  They're no less capable than Angular or React.
+The `bind-statement` specifies a JavaScript statement that should be executed every time your data changes.  It is one of just 6 _binding directives_ that together let you write responsive apps of any complexity.  They're no less capable than Angular or React.
 
 Proceed to the [documentation](https://github.com/ken107/databind-js/wiki/Home) for the full list of binding directives.
 
