@@ -287,6 +287,10 @@
 				Object.defineProperty(this, i, {get: prop.get, set: prop.set, enumerable: true, configurable: true});
 			}
 		}
+		for (var i=this.length; i<len; i++) {
+			var prop = this[propPrefix+i];
+			if (prop) prop.set(undefined);
+		}
 		return val;
 	}
 
