@@ -580,8 +580,10 @@
 	}
 
 	function Repeater(name, node, data, context, debugInfo) {
+		var isReverse = node.hasAttribute("data-reverse");
+		if (isReverse) node.removeAttribute("data-reverse");
 		var parent = node.parentNode;
-		var tail = node.nextSibling;
+		var tail = isReverse ? node.previousSibling : node.nextSibling;
 		parent.removeChild(node);
 		var count = 0;
 		var bindingStores = [];
@@ -592,15 +594,16 @@
 			if (isNaN(newCount) || newCount < 0) newCount = 0;
 			if (newCount > count) {
 				var newElems = document.createDocumentFragment();
-				var toBind = [];
 				for (var i=count; i<newCount; i++) {
 					if (cache.firstChild) {
-						newElems.appendChild(cache.firstChild);
+						if (isReverse) newElems.insertBefore(cache.firstChild, newElems.firstChild);
+						else newElems.appendChild(cache.firstChild);
 						bindingStores[i].rebind();
 					}
 					else {
 						var newElem = node.cloneNode(true);
-						newElems.appendChild(newElem);
+						if (isReverse) newElems.insertBefore(newElem, newElems.firstChild);
+						else newElems.appendChild(newElem);
 						var newData = data;
 						if (name) {
 							newData = extend(data);
@@ -611,12 +614,13 @@
 						dataBind(newElem, newData, context, bindingStore, debugInfo);
 					}
 				}
-				parent.insertBefore(newElems, tail);
+				if (isReverse) parent.insertBefore(newElems, tail ? tail.nextSibling : parent.firstChild);
+				else parent.insertBefore(newElems, tail);
 			}
 			else if (newCount < count) {
-				var elem = tail ? tail.previousSibling : parent.lastChild;
+				var elem = tail ? (isReverse ? tail.nextSibling : tail.previousSibling) : (isReverse ? parent.firstChild : parent.lastChild);
 				for (var i=count-1; i>=newCount; i--) {
-					var prevElem = elem.previousSibling;
+					var prevElem = isReverse ? elem.nextSibling : elem.previousSibling;
 					bindingStores[i].unbind();
 					cache.insertBefore(elem, cache.firstChild);
 					elem = prevElem;
