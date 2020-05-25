@@ -673,6 +673,7 @@
 						return;
 					}
 					var newNode = api.views[viewName].template.cloneNode(true);
+					if (node.className) newNode.className = newNode.className ? (newNode.className + " " + node.className) : node.className;
 					node.parentNode.replaceChild(newNode, node);
 					node = newNode;
 					var extendedData = null;
