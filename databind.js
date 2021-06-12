@@ -6,8 +6,10 @@
  * LICENSE file in the root directory of this source tree.
  */
 (function() {
+	var prefix = "{{";
+    	var suffix = "}}";
 	var regex = [
-		/{{[\s\S]*?}}/g,
+		new RegExp(prefix + "[\\s\\S]*?" + suffix ,"g"),
 		/^\s*parts\[0\].get\(\)\s*$/,
 		/'.*?'|".*?"|#\w+(?:\.\w+|\[(?:.*?\[.*?\])*?[^\[]*?\])*(\s*(?:\+\+|--|\+=|-=|\*=|\/=|%=|=(?!=)|\())?/g,
 		/\.\w+|\[(?:.*?\[.*?\])*?[^\[]*?\]/g,
@@ -346,7 +348,7 @@
 	}
 
 	function evalExpr(str, data, context, scope, debugInfo) {
-		debugInfo = debugInfo.concat("{{" + str + "}}");
+		debugInfo = debugInfo.concat(prefix + str + suffix);
 		var c = exprCache[str] || (exprCache[str] = parseExpr(str, debugInfo));
 		for (var i=0; i<c.funcs.length; i++) {
 			if (context[c.funcs[i]] === undefined) {
@@ -396,7 +398,7 @@
 		var exprs = str.match(regex[0]);
 		if (!exprs) return null;
 		var parts = new Array(exprs.length);
-		for (var i=0; i<exprs.length; i++) parts[i] = evalExpr(exprs[i].substr(2, exprs[i].length-4), data, context, scope, debugInfo);
+		for (var i=0; i<exprs.length; i++) parts[i] = evalExpr(exprs[i].substr(prefix.length, exprs[i].length-(prefix.length + suffix.length)), data, context, scope, debugInfo);
 
 		var keys = new Array(parts.length);
 		var prop = new Property(null, function(subscribed) {
@@ -728,7 +730,7 @@
 				var child = node.firstChild;
 				while (child) {
 					var nextSibling = child.nextSibling;
-					if (child.nodeType == 1 || child.nodeType == 3 && child.nodeValue.indexOf('{{') != -1) dataBind(child, data, context, bindingStore, debugInfo);
+					if (child.nodeType == 1 || child.nodeType == 3 && child.nodeValue.indexOf(prefix) != -1) dataBind(child, data, context, bindingStore, debugInfo);
 					child = nextSibling;
 				}
 			}
@@ -776,7 +778,7 @@
 		repeaterCacheTTL: 300000,	//removed repeater items are kept in a cache for reuse, the cache is cleared if it is not accessed within the TTL
 		timerInterval: 30000,		//granularity of the internal timer
 		evalExpr: evalExpr,			//process a binding expression and return a Property object
-		evalText: evalText,			//process a string containing {{binding expression}}'s, return a Property object or null if there is none
+		evalText: evalText,			//process a string containing (prefix + binding expression + suffix )'s, return a Property object or null if there is none
 		getProp: getProp,			//convert the specified object property to a getter-setter, return the underlying Property object
 		setProp: setProp,			//set the given Property object as the underlying getter-setter for the specified object property
 		Binding: Binding,
