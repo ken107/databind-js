@@ -678,6 +678,13 @@
 					if (node.className) newNode.className = newNode.className ? (newNode.className + " " + node.className) : node.className;
 					node.parentNode.replaceChild(newNode, node);
 					node = newNode;
+					bindingStore.bindings.push({
+						bind: function() {},
+						unbind: function() {
+							if (window.jQuery) jQuery(node).triggerHandler("unmount")
+							else node.dispatchEvent(new Event("unmount"))
+						}
+					})
 					var extendedData = null;
 					for (var i=0; i<dirs.vars.length; i++) {
 							if (!extendedData) extendedData = extend(data);
