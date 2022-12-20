@@ -7,6 +7,7 @@
 		checked: "x-checked",
 		value: "x-value",
 		disabled: "x-disabled",
+		if: "x-if",
 		foreach: "x-foreach-",
 		attr: "x-attr-",
 		style: "x-style-",
@@ -33,6 +34,8 @@
 					node.setAttribute("bind-statement-" + attr.name, "thisElem.value = " + attr.value);
 				else if (attr.name == my.disabled)
 					node.setAttribute("bind-statement-" + attr.name, "thisElem.disabled = " + attr.value);
+				else if (attr.name == my.if)
+					node.setAttribute("bind-repeater-if", attr.value + " ? 1 : 0");
 				else if (attr.name.lastIndexOf(my.foreach,0) == 0) {
 					node.setAttribute("bind-repeater-i", attr.value + ".length");
 					node.setAttribute("bind-var-" + attr.name.substr(my.foreach.length), attr.value + "[#i]");
