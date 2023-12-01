@@ -7,7 +7,7 @@
  */
 (function() {
 	var prefix = "{{";
-    	var suffix = "}}";
+	var suffix = "}}";
 	var regex = [
 		new RegExp(prefix + "[\\s\\S]*?" + suffix ,"g"),
 		/^\s*parts\[0\].get\(\)\s*$/,
@@ -647,7 +647,7 @@
 	}
 
 	function dataBind(node, data, context, bindingStore, debugInfo) {
-		if (node.nodeType == 1 && node.tagName != "TEMPLATE") {
+		if (node.nodeType == 1 && !["SCRIPT", "STYLE", "TEMPLATE"].includes(node.tagName)) {
 			if (api.onDataBinding) api.onDataBinding(node);
 			var dirs = getDirectives(node);
 			if (dirs.repeater) {
