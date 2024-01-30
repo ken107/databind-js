@@ -89,11 +89,11 @@
 					dirs.toRemove.push(attr.name);
 				}
 				else if (attr.name.lastIndexOf(api.directives.bindParameter,0) == 0) {
-					dirs.params.push({name: toCamelCase(attr.name.substr(api.directives.bindParameter.length)), value: attr.value});
+					dirs.params.push({name: toCamelCase(attr.name.slice(api.directives.bindParameter.length)), value: attr.value});
 					dirs.toRemove.push(attr.name);
 				}
 				else if (attr.name.lastIndexOf(api.directives.bindVariable,0) == 0) {
-					dirs.vars.push({name: toCamelCase(attr.name.substr(api.directives.bindVariable.length)), value: attr.value});
+					dirs.vars.push({name: toCamelCase(attr.name.slice(api.directives.bindVariable.length)), value: attr.value});
 					dirs.toRemove.push(attr.name);
 				}
 				else if (attr.name.lastIndexOf(api.directives.bindStatement,0) == 0) {
@@ -101,11 +101,11 @@
 					dirs.toRemove.push(attr.name);
 				}
 				else if (attr.name.lastIndexOf(api.directives.bindEvent,0) == 0) {
-					dirs.events.push({name: attr.name.substr(api.directives.bindEvent.length), value: "; " + attr.value});
+					dirs.events.push({name: attr.name.slice(api.directives.bindEvent.length), value: "; " + attr.value});
 					dirs.toRemove.push(attr.name);
 				}
 				else if (attr.name.lastIndexOf(api.directives.bindRepeater,0) == 0) {
-					dirs.repeater = {name: toCamelCase(attr.name.substr(api.directives.bindRepeater.length)), value: attr.value};
+					dirs.repeater = {name: toCamelCase(attr.name.slice(api.directives.bindRepeater.length)), value: attr.value};
 					dirs.toRemove = [attr.name];
 					break;
 				}
@@ -308,22 +308,22 @@
 		var pmap = {};
 		var expr = str.replace(regex[2], function(bindingSrc, operator) {
 			if (bindingSrc.charAt(0) == "'" || bindingSrc.charAt(0) == '"') {
-				strings.push(bindingSrc.substr(1, bindingSrc.length-2));
+				strings.push(bindingSrc.slice(1, -1));
 				return "strings[" + (strings.length-1) + "]";
 			}
 			else if (operator) {
 				if (operator.slice(-1) == "(") {
-					parts.push({bindingSrc: bindingSrc.substring(1, bindingSrc.length-operator.length)});
+					parts.push({bindingSrc: bindingSrc.slice(1, -operator.length)});
 					return "(parts[" + (parts.length-1) + "].get() || noOp)" + operator;
 				}
 				else {
-				parts.push({bindingSrc: bindingSrc.substring(1, bindingSrc.length-operator.length), operator: operator});
-				return "parts[" + (parts.length-1) + "].value" + operator;
+					parts.push({bindingSrc: bindingSrc.slice(1, -operator.length), operator: operator});
+					return "parts[" + (parts.length-1) + "].value" + operator;
 				}
 			}
 			else if (pmap[bindingSrc]) return pmap[bindingSrc];
 			else {
-				parts.push({bindingSrc: bindingSrc.substr(1)});
+				parts.push({bindingSrc: bindingSrc.slice(1)});
 				return pmap[bindingSrc] = "parts[" + (parts.length-1) + "].get()";
 			}
 		});
@@ -398,7 +398,7 @@
 		var exprs = str.match(regex[0]);
 		if (!exprs) return null;
 		var parts = new Array(exprs.length);
-		for (var i=0; i<exprs.length; i++) parts[i] = evalExpr(exprs[i].substr(prefix.length, exprs[i].length-(prefix.length + suffix.length)), data, context, scope, debugInfo);
+		for (var i=0; i<exprs.length; i++) parts[i] = evalExpr(exprs[i].slice(prefix.length, -suffix.length), data, context, scope, debugInfo);
 
 		var keys = new Array(parts.length);
 		var prop = new Property(null, function(subscribed) {
@@ -427,8 +427,8 @@
 		var path = ("." + str).match(regex[3]);
 		var derefs = new Array(path.length);
 		for (var i=0; i<path.length; i++) {
-			if (path[i].charAt(0) === '.') derefs[i] = path[i].substr(1);
-			else derefs[i] = evalExpr(path[i].substr(1, path[i].length-2), data, context, scope, debugInfo);
+			if (path[i].charAt(0) === '.') derefs[i] = path[i].slice(1);
+			else derefs[i] = evalExpr(path[i].slice(1, -1), data, context, scope, debugInfo);
 		}
 		var parts = new Array(path.length);
 		parts[0] = getPropExt(data, derefs[0]);
@@ -785,7 +785,7 @@
 		repeaterCacheTTL: 300000,	//removed repeater items are kept in a cache for reuse, the cache is cleared if it is not accessed within the TTL
 		timerInterval: 30000,		//granularity of the internal timer
 		evalExpr: evalExpr,			//process a binding expression and return a Property object
-		evalText: evalText,			//process a string containing (prefix + binding expression + suffix )'s, return a Property object or null if there is none
+		evalText: evalText,			//process a string containing (prefix + binding expression + suffix)'s, return a Property object or null if there is none
 		getProp: getProp,			//convert the specified object property to a getter-setter, return the underlying Property object
 		setProp: setProp,			//set the given Property object as the underlying getter-setter for the specified object property
 		Binding: Binding,
@@ -797,12 +797,12 @@
 	};
 
 	function onReady() {
-			if (api.autoBind) {
-				api.console.log("Auto binding document, to disable auto binding set dataBinder.autoBind to false");
-				var startTime = new Date().getTime();
-				api.dataBind(document.body, window, null, ["document"]);
-				api.console.log("Finished binding document", new Date().getTime()-startTime, "ms");
-			}
+		if (api.autoBind) {
+			api.console.log("Auto binding document, to disable auto binding set dataBinder.autoBind to false");
+			var startTime = new Date().getTime();
+			api.dataBind(document.body, window, null, ["document"]);
+			api.console.log("Finished binding document", new Date().getTime()-startTime, "ms");
+		}
 	}
 
 	if (!window.dataBinder) {

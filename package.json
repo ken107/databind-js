@@ -14,7 +14,7 @@
   },
   "main": "databind.js",
   "files": [
-	"databind.js",
-	"examples"
+    "databind.js",
+    "examples"
   ]
 }
