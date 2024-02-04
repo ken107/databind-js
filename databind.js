@@ -5,7 +5,7 @@
  * This source code is licensed under the MIT license found in the
  * LICENSE file in the root directory of this source tree.
  */
-(function() {
+exports.dataBinder = (function() {
 	var prefix = "{{";
 	var suffix = "}}";
 	var regex = [
@@ -54,7 +54,7 @@
 		var counter = 0;
 		var intervalId = 0;
 		function onTimer() {
-			var now = new Date().getTime();
+			var now = Date.now();
 			for (var id in queue) {
 				if (queue[id].expires <= now) {
 					queue[id].callback();
@@ -68,10 +68,10 @@
 		this.callAfter = function(timeout, func) {
 			if (!queue) {
 				queue = {};
-				intervalId = setInterval(onTimer, api.timerInterval);
+				intervalId = setInterval(onTimer, 30000);
 			}
 			var id = ++counter;
-			queue[id] = {expires: new Date().getTime()+timeout, callback: func};
+			queue[id] = {expires: Date.now()+timeout, callback: func};
 			return id;
 		};
 		this.cancel = function(id) {
@@ -132,7 +132,7 @@
 	}
 
 	function printDebug(debugInfo) {
-		if (debugInfo.length) api.console.log(debugInfo);
+		if (debugInfo.length) console.log(debugInfo);
 	}
 
 	function proxy(func, ctx) {
@@ -152,20 +152,9 @@
 			}
 			return val;
 		}
-		function jQueryHandler(event) {
-			event.data = arguments.length > 2 ? Array.prototype.slice.call(arguments, 1) : arguments[1];
-			scope.event = event;
-			return prop.get();
-		}
 		var camel = toCamelCase(type);
-		if (window.jQuery) {
-			jQuery(node).on(type, jQueryHandler);
-			if (camel != type) jQuery(node).on(camel, jQueryHandler);
-		}
-		else {
-			node.addEventListener(type, handler, false);
-			if (camel != type) node.addEventListener(camel, handler, false);
-		}
+		node.addEventListener(type, handler, false);
+		if (camel != type) node.addEventListener(camel, handler, false);
 	}
 
 	/**
@@ -235,7 +224,7 @@
 				var desc = Object.getOwnPropertyDescriptor(obj, name);
 				if (!desc || desc.configurable) Object.defineProperty(obj, name, {get: prop.get, set: prop.set, enumerable: true, configurable: isArrayIndex});
 				else {
-					if (name !== "length") api.console.warn("Object", obj, "property '" + name + "' is not configurable, change may not be detected");
+					if (name !== "length") console.warn("Object", obj, "property '" + name + "' is not configurable, change may not be detected");
 					prop.get = fallbackGet;
 					prop.set = fallbackSet;
 				}
@@ -245,7 +234,7 @@
 			var desc = Object.getOwnPropertyDescriptor(obj, name);
 			if (!desc || desc.configurable) Object.defineProperty(obj, name, {get: prop.get, set: prop.set, enumerable: true, configurable: false});
 			else {
-				api.console.warn("Object", obj, "property '" + name + "' is not configurable, change may not be detected");
+				console.warn("Object", obj, "property '" + name + "' is not configurable, change may not be detected");
 				prop.get = fallbackGet;
 				prop.set = fallbackSet;
 			}
@@ -640,8 +629,7 @@
 		function clearCache() {
 			while (cache.lastChild) {
 				bindingStores.pop();
-				if (window.jQuery) jQuery(cache.lastChild).remove();
-				else cache.removeChild(cache.lastChild);
+				cache.removeChild(cache.lastChild);
 			}
 		}
 	}
@@ -664,7 +652,7 @@
 				while (dirs.view) {
 					var viewName = dirs.view;
 					if (!api.views[viewName]) {
-						api.console.warn("View '" + viewName + "' is not ready");
+						console.warn("View '" + viewName + "' is not ready");
 						var repeater = new Repeater(null, node, data, context, debugInfo);
 						var prop = evalExpr("#views['" + viewName + "']", api, null, {}, debugInfo);
 						var binding = new Binding(prop, 1);
@@ -681,8 +669,7 @@
 					bindingStore.bindings.push({
 						bind: function() {},
 						unbind: function() {
-							if (window.jQuery) jQuery(node).triggerHandler("unmount")
-							else node.dispatchEvent(new Event("unmount"))
+							node.dispatchEvent(new Event("unmount"))
 						}
 					})
 					var extendedData = null;
@@ -781,9 +768,7 @@
 		},
 		views: {},					//declare your views, name->value where value={template: anHtmlTemplate, controller: function(rootElementOfView)}
 		onDataBinding: null,		//set this to a function that will be called before each node is bound, you can use this to process custom directives
-		autoBind: true,				//if true, automatically dataBind the entire document as soon as it is ready
 		repeaterCacheTTL: 300000,	//removed repeater items are kept in a cache for reuse, the cache is cleared if it is not accessed within the TTL
-		timerInterval: 30000,		//granularity of the internal timer
 		evalExpr: evalExpr,			//process a binding expression and return a Property object
 		evalText: evalText,			//process a string containing (prefix + binding expression + suffix)'s, return a Property object or null if there is none
 		getProp: getProp,			//convert the specified object property to a getter-setter, return the underlying Property object
@@ -793,21 +778,13 @@
 		dataBind: function(elem, context, bindingStore, debugInfo) {
 			dataBind(elem, context, context, bindingStore||new BindingStore(), debugInfo||[]);
 		},
-		console: window.console || {log: noOp, warn: noOp}
-	};
-
-	function onReady() {
-		if (api.autoBind) {
-			api.console.log("Auto binding document, to disable auto binding set dataBinder.autoBind to false");
-			var startTime = new Date().getTime();
-			api.dataBind(document.body, window, null, ["document"]);
-			api.console.log("Finished binding document", new Date().getTime()-startTime, "ms");
+		bindDocument: function() {
+			console.log("Binding document");
+			var startTime = Date.now();
+			dataBind(document.body, window, window, new BindingStore(), ["document"]);
+			console.log("Finished binding document", Date.now()-startTime, "ms");
 		}
 	}
 
-	if (!window.dataBinder) {
-		window.dataBinder = api;
-		if (window.jQuery) jQuery(onReady);
-		else document.addEventListener("DOMContentLoaded", onReady, false);
-	}
+	return api;
 })();
