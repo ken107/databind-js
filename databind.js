@@ -105,7 +105,11 @@
 					dirs.toRemove.push(attr.name);
 				}
 				else if (attr.name.lastIndexOf(api.directives.bindRepeater,0) == 0) {
-					dirs.repeater = {name: toCamelCase(attr.name.slice(api.directives.bindRepeater.length)), value: attr.value};
+					dirs.repeater = {
+						name: toCamelCase(attr.name.slice(api.directives.bindRepeater.length)),
+						value: attr.value,
+						view: node.getAttribute(api.directives.bindView)
+					}
 					dirs.toRemove = [attr.name];
 					break;
 				}
@@ -166,6 +170,10 @@
 			node.addEventListener(type, handler, false);
 			if (camel != type) node.addEventListener(camel, handler, false);
 		}
+	}
+
+	function randomString() {
+		return Math.random().toString(36).slice(2)
 	}
 
 	/**
@@ -653,7 +661,16 @@
 			if (dirs.repeater) {
 				removeDirectives(node, dirs);
 					var repeater = new Repeater(dirs.repeater.name, node, data, context, debugInfo);
-					var prop = evalExpr(dirs.repeater.value, data, context, {}, debugInfo);
+					let expr
+					if (dirs.repeater.view && !api.views[dirs.repeater.view]) {
+						console.warn("View '" + dirs.repeater.view + "' is not ready");
+						const name = randomString()
+						setProp(data, name, getProp(api.views, dirs.repeater.view))
+						expr = "!#" + name + " ? 0 : " + dirs.repeater.value
+					} else {
+						expr = dirs.repeater.value
+					}
+					var prop = evalExpr(expr, data, context, {}, debugInfo);
 					var binding = new Binding(prop, 1);
 					binding.onChange = function() {repeater.update(prop.get())};
 					binding.onUnbind = function() {repeater.update(0)};
