@@ -20,6 +20,7 @@
 	];
 	var propPrefix = "__prop__";
 	var exprCache = {};
+	const unreadyViews = []
 
 	/**
 	 * Helpers
@@ -663,7 +664,7 @@
 					var repeater = new Repeater(dirs.repeater.name, node, data, context, debugInfo);
 					let expr
 					if (dirs.repeater.view && !api.views[dirs.repeater.view]) {
-						console.warn("View '" + dirs.repeater.view + "' is not ready");
+						unreadyViews.push(dirs.repeater.view)
 						const name = randomString()
 						setProp(data, name, getProp(api.views, dirs.repeater.view))
 						expr = "!#" + name + " ? 0 : " + dirs.repeater.value
@@ -681,7 +682,7 @@
 				while (dirs.view) {
 					var viewName = dirs.view;
 					if (!api.views[viewName]) {
-						api.console.warn("View '" + viewName + "' is not ready");
+						unreadyViews.push(viewName)
 						var repeater = new Repeater(null, node, data, context, debugInfo);
 						var prop = evalExpr("#views['" + viewName + "']", api, null, {}, debugInfo);
 						var binding = new Binding(prop, 1);
@@ -814,6 +815,9 @@
 		dataBind: function(elem, context, bindingStore, debugInfo) {
 			dataBind(elem, context, context, bindingStore||new BindingStore(), debugInfo||[]);
 		},
+		getMissingViews() {
+			return unreadyViews.filter(x => !api.views[x])
+		},
 		console: window.console || {log: noOp, warn: noOp}
 	};
 
@@ -823,6 +827,10 @@
 			var startTime = new Date().getTime();
 			api.dataBind(document.body, window, null, ["document"]);
 			api.console.log("Finished binding document", new Date().getTime()-startTime, "ms");
+			setTimeout(() => {
+				const missing = api.getMissingViews()
+				if (missing.length) api.console.warn("Missing views", missing)
+			}, 3000)
 		}
 	}
 
