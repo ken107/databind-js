@@ -693,6 +693,10 @@
 					}
 					var newNode = api.views[viewName].template.cloneNode(true);
 					if (node.className) newNode.className = newNode.className ? (newNode.className + " " + node.className) : node.className;
+					for (let i=0; i<node.style.length; i++) {
+						const prop = node.style.item(i)
+						newNode.style[prop] = node.style[prop]
+					}
 					node.parentNode.replaceChild(newNode, node);
 					node = newNode;
 					bindingStore.bindings.push({
