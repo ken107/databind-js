@@ -209,6 +209,14 @@
 		function publish() {
 			for (var i in subscribers) subscribers[i]();
 		};
+		if (typeof rxjs != 'undefined') {
+			this.value$ = rxjs.fromEventPattern(
+				h => this.subscribe(() => h(this.get())),
+				(h, k) => this.unsubscribe(k)
+			).pipe(
+				rxjs.startWith(this.get())
+			)
+		}
 	}
 
 	function extend(data) {
@@ -806,8 +814,32 @@
 		autoBind: true,				//if true, automatically dataBind the entire document as soon as it is ready
 		repeaterCacheTTL: 300000,	//removed repeater items are kept in a cache for reuse, the cache is cleared if it is not accessed within the TTL
 		timerInterval: 30000,		//granularity of the internal timer
-		evalExpr: evalExpr,			//process a binding expression and return a Property object
-		evalText: evalText,			//process a string containing (prefix + binding expression + suffix)'s, return a Property object or null if there is none
+
+		/**
+		 * Process a binding expression and return a Property object representing its value
+		 * @param {string} str A binding expression
+		 * @param {object} data Binding sources
+		 * @param {object} context Value of `this`
+		 * @param {object} scope Local variables
+		 * @param {array} debugInfo Debug info to accompany error messages
+		 */
+		evalExpr(str, data, context = {}, scope = {}, debugInfo = []) {
+			return evalExpr(str, data, context, scope, debugInfo)
+		},
+
+		/**
+		 * Process a string containing zero or more binding expressions enclosed in double brackets,
+		 * return a Property object representing its interpolated value
+		 * @param {string} str String containing binding expressions
+		 * @param {object} data Binding sources
+		 * @param {object} context Value of `this`
+		 * @param {object} scope Local variables
+		 * @param {array} debugInfo Debug info to accompany error messages
+		 */
+		evalText(str, data, context = {}, scope = {}, debugInfo = []) {
+			return evalText(str, data, context, scope, debugInfo)
+		},
+
 		getProp: getProp,			//convert the specified object property to a getter-setter, return the underlying Property object
 		setProp: setProp,			//set the given Property object as the underlying getter-setter for the specified object property
 		Binding: Binding,
