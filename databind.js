@@ -81,7 +81,7 @@
 	};
 
 	function getDirectives(node) {
-		var dirs = {params: [], vars: [], statements: [], events: [], toRemove: []};
+		var dirs = {params: [], vars: [], vars2: [], statements: [], events: [], toRemove: []};
 		for (var i=0; i<node.attributes.length; i++) {
 			var attr = node.attributes[i];
 			if (attr.specified) {
@@ -96,6 +96,13 @@
 				else if (attr.name.lastIndexOf(api.directives.bindVariable,0) == 0) {
 					dirs.vars.push({name: toCamelCase(attr.name.slice(api.directives.bindVariable.length)), value: attr.value});
 					dirs.toRemove.push(attr.name);
+				}
+				else if (attr.name.startsWith(api.directives.bindVariable2)) {
+					dirs.vars2.push({
+						name: toCamelCase(attr.name.slice(api.directives.bindVariable2.length)),
+						value: attr.value
+					})
+					dirs.toRemove.push(attr.name)
 				}
 				else if (attr.name.lastIndexOf(api.directives.bindStatement,0) == 0) {
 					dirs.statements.push({value: "; " + attr.value});
@@ -721,6 +728,15 @@
 							var prop = evalExpr(dirs.vars[i].value, data, context, {thisElem: node}, debugInfo);
 							bindParam(extendedData, dirs.vars[i].name, prop, bindingStore);
 						}
+					if (extendedData) {
+						data = extendedData
+						extendedData = null
+					}
+					for (const {name, value} of dirs.vars2) {
+						if (!extendedData) extendedData = extend(data)
+						const prop = evalExpr(value, data, context, {thisElem: node}, debugInfo)
+						bindParam(extendedData, name, prop, bindingStore)
+					}
 					if (extendedData) data = extendedData;
 					for (var i=0; i<dirs.statements.length; i++) {
 							var prop = evalExpr(dirs.statements[i].value, data, context, {thisElem: node}, debugInfo);
@@ -751,6 +767,15 @@
 						var prop = evalExpr(dirs.vars[i].value, data, context, {thisElem: node}, debugInfo);
 						bindParam(extendedData, dirs.vars[i].name, prop, bindingStore);
 					}
+				if (extendedData) {
+					data = extendedData
+					extendedData = null
+				}
+				for (const {name, value} of dirs.vars2) {
+					if (!extendedData) extendedData = extend(data)
+					const prop = evalExpr(value, data, context, {thisElem: node}, debugInfo)
+					bindParam(extendedData, name, prop, bindingStore)
+				}
 				if (extendedData) data = extendedData;
 				for (var i=0; i<dirs.statements.length; i++) {
 						var prop = evalExpr(dirs.statements[i].value, data, context, {thisElem: node}, debugInfo);
@@ -805,6 +830,7 @@
 			bindView: "bind-view",
 			bindParameter: "bind-param-",
 			bindVariable: "bind-var-",
+			bindVariable2: "bind-var2-",
 			bindStatement: "bind-statement-",
 			bindEvent: "bind-event-",
 			bindRepeater: "bind-repeater-"
