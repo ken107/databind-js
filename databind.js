@@ -20,6 +20,7 @@
 	];
 	var propPrefix = "__prop__";
 	var exprCache = {};
+	const varDependencyCache = new Map()
 	const unreadyViews = []
 
 	/**
@@ -116,7 +117,29 @@
 				}
 			}
 		}
+		if (dirs.vars.length > 1) {
+			const cacheKey = dirs.vars.map(({ name, value }) => name + value).join('')
+			let cacheValue = varDependencyCache.get(cacheKey)
+			if (!cacheValue) varDependencyCache.set(cacheKey, cacheValue = sortByDependency(dirs.vars))
+			dirs.vars = cacheValue
+		}
 		return dirs;
+	}
+
+	function sortByDependency(vars) {
+		const input = vars.map(x => new RegExp('#' + x.name + '\\b'))
+		const sorted = []
+		while (sorted.length < input.length) {
+			let i = input.length - 1
+			while (i >= 0 && (!input[i] || vars.some((x, j) => input[j] && j != i && input[i].test(x.value)))) i--
+			if (i < 0) {
+				api.console.log(vars)
+				throw new Error('Circular dependency detected')
+			}
+			sorted.unshift(vars[i])
+			input[i] = null
+		}
+		return sorted
 	}
 
 	function removeDirectives(node, dirs) {
@@ -718,7 +741,7 @@
 					var extendedData = null;
 					for (var i=0; i<dirs.vars.length; i++) {
 							if (!extendedData) extendedData = extend(data);
-							var prop = evalExpr(dirs.vars[i].value, data, context, {thisElem: node}, debugInfo);
+							var prop = evalExpr(dirs.vars[i].value, extendedData, context, {thisElem: node}, debugInfo);
 							bindParam(extendedData, dirs.vars[i].name, prop, bindingStore);
 						}
 					if (extendedData) data = extendedData;
@@ -748,7 +771,7 @@
 				var extendedData = null;
 				for (var i=0; i<dirs.vars.length; i++) {
 						if (!extendedData) extendedData = extend(data);
-						var prop = evalExpr(dirs.vars[i].value, data, context, {thisElem: node}, debugInfo);
+						var prop = evalExpr(dirs.vars[i].value, extendedData, context, {thisElem: node}, debugInfo);
 						bindParam(extendedData, dirs.vars[i].name, prop, bindingStore);
 					}
 				if (extendedData) data = extendedData;
