@@ -27,28 +27,30 @@
 	 * Helpers
 	 */
 	var callLater = (function() {
-		var queue = null;
+		let queue = null
 		function call() {
-			while (queue.length) {
-				var funcs = queue;
-				queue = [];
-				for (var i=0; i<funcs.length; i++) funcs[i].cl_called = false;
-				for (var priority=1; priority<=3; priority++)
-				for (var i=0; i<funcs.length; i++) if (funcs[i].cl_priority == priority && !funcs[i].cl_called) {
-					funcs[i]();
-					funcs[i].cl_called = true;
-				}
+			let funcs
+			//process nodes (vars) first, which may recursively add more nodes and leaves to the current queue
+			//process repeaters as well, to prevent var bindings on invalid children from being processed
+			while (queue.nodes.size) {
+				funcs = queue.nodes
+				queue.nodes = new Set()
+				for (const func of funcs) func()
 			}
-			queue = null;
+			//once all nodes have been processed, then process the leaves (statements and texts)
+			//some statements may modify vars, these shall be deferred to the next queue
+			funcs = queue.leaves
+			queue = null
+			for (const func of funcs) func()
 		}
-		return function(func, priority) {
+		return function(func, isVar) {
 			if (!queue) {
-				queue = [];
-				setTimeout(call, 0);
+				queue = {nodes: new Set(), leaves: new Set()}
+				setTimeout(call, 0)
 			}
-			func.cl_priority = priority;
-			queue.push(func);
-		};
+			if (isVar) queue.nodes.add(func)
+			else queue.leaves.add(func)
+		}
 	})();
 
 	var timer = new function() {
@@ -586,7 +588,7 @@
 	/**
 	 * Binding
 	 */
-	function Binding(prop, priority) {	//priority 0=synchronous 1,2,3=asynchronous
+	function Binding(prop, isVar) {
 		var self = this;
 		var subkey = null;
 		function notifyChange() {
@@ -594,9 +596,7 @@
 		}
 		this.bind = function() {
 			if (subkey) throw new Error("Already bound");
-			subkey = prop.subscribe(priority == 0 ? notifyChange : function() {
-				callLater(notifyChange, priority);
-			});
+			subkey = prop.subscribe(() => callLater(notifyChange, isVar))
 			self.onChange();
 		};
 		this.unbind = function() {
@@ -703,7 +703,7 @@
 						expr = dirs.repeater.value
 					}
 					var prop = evalExpr(expr, data, context, {}, debugInfo);
-					var binding = new Binding(prop, 1);
+					var binding = new Binding(prop, true);
 					binding.onChange = function() {repeater.update(prop.get())};
 					binding.onUnbind = function() {repeater.update(0)};
 					binding.bind();
@@ -716,7 +716,7 @@
 						unreadyViews.push(viewName)
 						var repeater = new Repeater(null, node, data, context, debugInfo);
 						var prop = evalExpr("#views['" + viewName + "']", api, null, {}, debugInfo);
-						var binding = new Binding(prop, 1);
+						var binding = new Binding(prop, true);
 						binding.onChange = function() {repeater.update(prop.get() ? 1 : 0)};
 						binding.onUnbind = function() {repeater.update(0)};
 						binding.bind();
@@ -747,7 +747,7 @@
 					if (extendedData) data = extendedData;
 					for (var i=0; i<dirs.statements.length; i++) {
 							var prop = evalExpr(dirs.statements[i].value, data, context, {thisElem: node}, debugInfo);
-							var binding = new Binding(prop, 2);
+							var binding = new Binding(prop);
 							binding.onChange = prop.get;
 							binding.bind();
 							bindingStore.bindings.push(binding);
@@ -777,7 +777,7 @@
 				if (extendedData) data = extendedData;
 				for (var i=0; i<dirs.statements.length; i++) {
 						var prop = evalExpr(dirs.statements[i].value, data, context, {thisElem: node}, debugInfo);
-						var binding = new Binding(prop, 2);
+						var binding = new Binding(prop);
 						binding.onChange = prop.get;
 						binding.bind();
 						bindingStore.bindings.push(binding);
@@ -798,7 +798,7 @@
 		else if (node.nodeType == 3) {
 			var prop = evalText(node.nodeValue, data, context, {thisElem: node}, debugInfo);
 			if (prop) {
-				var binding = new Binding(prop, 3);
+				var binding = new Binding(prop);
 				binding.onChange = function() {
 					var textarea = document.createElement("textarea");
 					textarea.innerHTML = prop.get();
@@ -812,7 +812,7 @@
 
 	function bindParam(data, paramName, prop, bindingStore) {
 		if (prop.isExpr) {
-			var binding = new Binding(prop, 0);
+			var binding = new Binding(prop, true);
 			binding.onChange = function() {data[paramName] = prop.get()};
 			binding.bind();
 			bindingStore.bindings.push(binding);
