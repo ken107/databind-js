@@ -29,27 +29,25 @@
 	var callLater = (function() {
 		let queue = null
 		function call() {
-			let funcs
-			//process nodes (vars) first, which may recursively add more nodes and leaves to the current queue
-			//process repeaters as well, to prevent var bindings on invalid children from being processed
-			while (queue.nodes.size) {
-				funcs = queue.nodes
-				queue.nodes = new Set()
-				for (const func of funcs) func()
+			while (queue.min <= queue.max) {
+				if (queue[queue.min]) {
+					const funcs = queue[queue.min]
+					queue[queue.min++] = null
+					for (const func of funcs) func()
+				} else {
+					queue.min++
+				}
 			}
-			//once all nodes have been processed, then process the leaves (statements and texts)
-			//some statements may modify vars, these shall be deferred to the next queue
-			funcs = queue.leaves
 			queue = null
-			for (const func of funcs) func()
 		}
-		return function(func, isVar) {
+		return function(func, priority) {
 			if (!queue) {
-				queue = {nodes: new Set(), leaves: new Set()}
+				queue = {min: priority, max: priority}
 				setTimeout(call, 0)
 			}
-			if (isVar) queue.nodes.add(func)
-			else queue.leaves.add(func)
+			(queue[priority] || (queue[priority] = new Set())).add(func)
+			if (priority < queue.min) queue.min = priority
+			if (priority > queue.max) queue.max = priority
 		}
 	})();
 
@@ -588,7 +586,7 @@
 	/**
 	 * Binding
 	 */
-	function Binding(prop, isVar) {
+	function Binding(prop, priority) {
 		var self = this;
 		var subkey = null;
 		function notifyChange() {
@@ -596,7 +594,7 @@
 		}
 		this.bind = function() {
 			if (subkey) throw new Error("Already bound");
-			subkey = prop.subscribe(() => callLater(notifyChange, isVar))
+			subkey = prop.subscribe(() => callLater(notifyChange, priority))
 			self.onChange();
 		};
 		this.unbind = function() {
@@ -621,7 +619,7 @@
 		};
 	}
 
-	function Repeater(name, node, data, context, debugInfo) {
+	function Repeater(name, node, data, context, debugInfo, depth) {
 		var isReverse = node.hasAttribute("data-reverse");
 		if (isReverse) node.removeAttribute("data-reverse");
 		var parent = node.parentNode;
@@ -653,7 +651,7 @@
 						}
 						var bindingStore = new BindingStore();
 						bindingStores.push(bindingStore);
-						dataBind(newElem, newData, context, bindingStore, debugInfo);
+						dataBind(newElem, newData, context, bindingStore, debugInfo, depth);
 					}
 				}
 				if (isReverse) parent.insertBefore(newElems, tail ? tail.nextSibling : parent.firstChild);
@@ -686,13 +684,13 @@
 		}
 	}
 
-	function dataBind(node, data, context, bindingStore, debugInfo) {
+	function dataBind(node, data, context, bindingStore, debugInfo, depth) {
 		if (node.nodeType == 1 && !["SCRIPT", "STYLE", "TEMPLATE"].includes(node.tagName)) {
 			if (api.onDataBinding) api.onDataBinding(node);
 			var dirs = getDirectives(node);
 			if (dirs.repeater) {
 				removeDirectives(node, dirs);
-					var repeater = new Repeater(dirs.repeater.name, node, data, context, debugInfo);
+					var repeater = new Repeater(dirs.repeater.name, node, data, context, debugInfo, depth);
 					let expr
 					if (dirs.repeater.view && !api.views[dirs.repeater.view]) {
 						unreadyViews.push(dirs.repeater.view)
@@ -703,7 +701,7 @@
 						expr = dirs.repeater.value
 					}
 					var prop = evalExpr(expr, data, context, {}, debugInfo);
-					var binding = new Binding(prop, true);
+					var binding = new Binding(prop, depth * 2);
 					binding.onChange = function() {repeater.update(prop.get())};
 					binding.onUnbind = function() {repeater.update(0)};
 					binding.bind();
@@ -714,9 +712,9 @@
 					var viewName = dirs.view;
 					if (!api.views[viewName]) {
 						unreadyViews.push(viewName)
-						var repeater = new Repeater(null, node, data, context, debugInfo);
+						var repeater = new Repeater(null, node, data, context, debugInfo, depth);
 						var prop = evalExpr("#views['" + viewName + "']", api, null, {}, debugInfo);
-						var binding = new Binding(prop, true);
+						var binding = new Binding(prop, depth * 2);
 						binding.onChange = function() {repeater.update(prop.get() ? 1 : 0)};
 						binding.onUnbind = function() {repeater.update(0)};
 						binding.bind();
@@ -742,12 +740,12 @@
 					for (var i=0; i<dirs.vars.length; i++) {
 							if (!extendedData) extendedData = extend(data);
 							var prop = evalExpr(dirs.vars[i].value, extendedData, context, {thisElem: node}, debugInfo);
-							bindParam(extendedData, dirs.vars[i].name, prop, bindingStore);
+							bindParam(extendedData, dirs.vars[i].name, prop, bindingStore, depth);
 						}
 					if (extendedData) data = extendedData;
 					for (var i=0; i<dirs.statements.length; i++) {
 							var prop = evalExpr(dirs.statements[i].value, data, context, {thisElem: node}, debugInfo);
-							var binding = new Binding(prop);
+							var binding = new Binding(prop, depth * 2 + 1);
 							binding.onChange = prop.get;
 							binding.bind();
 							bindingStore.bindings.push(binding);
@@ -760,7 +758,7 @@
 					var newContext = new api.views[viewName].controller(node);
 					for (var i=0; i<dirs.params.length; i++) {
 							var prop = evalExpr(dirs.params[i].value, data, context, {thisElem: node}, debugInfo);
-							bindParam(newContext, dirs.params[i].name, prop, bindingStore);
+							bindParam(newContext, dirs.params[i].name, prop, bindingStore, depth);
 						}
 					data = context = newContext;
 					debugInfo = debugInfo.concat(viewName);
@@ -772,12 +770,12 @@
 				for (var i=0; i<dirs.vars.length; i++) {
 						if (!extendedData) extendedData = extend(data);
 						var prop = evalExpr(dirs.vars[i].value, extendedData, context, {thisElem: node}, debugInfo);
-						bindParam(extendedData, dirs.vars[i].name, prop, bindingStore);
+						bindParam(extendedData, dirs.vars[i].name, prop, bindingStore, depth);
 					}
 				if (extendedData) data = extendedData;
 				for (var i=0; i<dirs.statements.length; i++) {
 						var prop = evalExpr(dirs.statements[i].value, data, context, {thisElem: node}, debugInfo);
-						var binding = new Binding(prop);
+						var binding = new Binding(prop, depth * 2 + 1);
 						binding.onChange = prop.get;
 						binding.bind();
 						bindingStore.bindings.push(binding);
@@ -790,7 +788,9 @@
 				var child = node.firstChild;
 				while (child) {
 					var nextSibling = child.nextSibling;
-					if (child.nodeType == 1 || child.nodeType == 3 && child.nodeValue.indexOf(prefix) != -1) dataBind(child, data, context, bindingStore, debugInfo);
+					if (child.nodeType == 1 || child.nodeType == 3 && child.nodeValue.indexOf(prefix) != -1) {
+						dataBind(child, data, context, bindingStore, debugInfo, depth + 1);
+					}
 					child = nextSibling;
 				}
 			}
@@ -798,7 +798,7 @@
 		else if (node.nodeType == 3) {
 			var prop = evalText(node.nodeValue, data, context, {thisElem: node}, debugInfo);
 			if (prop) {
-				var binding = new Binding(prop);
+				var binding = new Binding(prop, depth * 2 + 1);
 				binding.onChange = function() {
 					var textarea = document.createElement("textarea");
 					textarea.innerHTML = prop.get();
@@ -810,9 +810,9 @@
 		}
 	}
 
-	function bindParam(data, paramName, prop, bindingStore) {
+	function bindParam(data, paramName, prop, bindingStore, depth) {
 		if (prop.isExpr) {
-			var binding = new Binding(prop, true);
+			var binding = new Binding(prop, depth * 2);
 			binding.onChange = function() {data[paramName] = prop.get()};
 			binding.bind();
 			bindingStore.bindings.push(binding);
@@ -868,7 +868,7 @@
 		Binding: Binding,
 		BindingStore: BindingStore,
 		dataBind: function(elem, context, bindingStore, debugInfo) {
-			dataBind(elem, context, context, bindingStore||new BindingStore(), debugInfo||[]);
+			dataBind(elem, context, context, bindingStore||new BindingStore(), debugInfo||[], 0)
 		},
 		getMissingViews() {
 			return unreadyViews.filter(x => !api.views[x])
