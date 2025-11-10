@@ -42,8 +42,8 @@
 		}
 		return function(func, priority) {
 			if (!queue) {
-				queue = {min: priority, max: priority}
-				setTimeout(call, 0)
+				queue = {min: priority, max: priority};
+				(window.queueMicrotask || setTimeout)(call)
 			}
 			(queue[priority] || (queue[priority] = new Set())).add(func)
 			if (priority < queue.min) queue.min = priority
