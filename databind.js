@@ -690,7 +690,7 @@
 			var dirs = getDirectives(node);
 			if (dirs.repeater) {
 				removeDirectives(node, dirs);
-					var repeater = new Repeater(dirs.repeater.name, node, data, context, debugInfo, depth);
+					var repeater = new Repeater(dirs.repeater.name, node, data, context, debugInfo, depth + 1);
 					let expr
 					if (dirs.repeater.view && !api.views[dirs.repeater.view]) {
 						unreadyViews.push(dirs.repeater.view)
@@ -701,7 +701,7 @@
 						expr = dirs.repeater.value
 					}
 					var prop = evalExpr(expr, data, context, {}, debugInfo);
-					var binding = new Binding(prop, depth * 2);
+					var binding = new Binding(prop, depth);
 					binding.onChange = function() {repeater.update(prop.get())};
 					binding.onUnbind = function() {repeater.update(0)};
 					binding.bind();
@@ -712,9 +712,9 @@
 					var viewName = dirs.view;
 					if (!api.views[viewName]) {
 						unreadyViews.push(viewName)
-						var repeater = new Repeater(null, node, data, context, debugInfo, depth);
+						var repeater = new Repeater(null, node, data, context, debugInfo, depth + 1);
 						var prop = evalExpr("#views['" + viewName + "']", api, null, {}, debugInfo);
-						var binding = new Binding(prop, depth * 2);
+						var binding = new Binding(prop, depth);
 						binding.onChange = function() {repeater.update(prop.get() ? 1 : 0)};
 						binding.onUnbind = function() {repeater.update(0)};
 						binding.bind();
@@ -745,7 +745,7 @@
 					if (extendedData) data = extendedData;
 					for (var i=0; i<dirs.statements.length; i++) {
 							var prop = evalExpr(dirs.statements[i].value, data, context, {thisElem: node}, debugInfo);
-							var binding = new Binding(prop, depth * 2 + 1);
+							var binding = new Binding(prop, depth + 1);
 							binding.onChange = prop.get;
 							binding.bind();
 							bindingStore.bindings.push(binding);
@@ -758,12 +758,13 @@
 					var newContext = new api.views[viewName].controller(node);
 					for (var i=0; i<dirs.params.length; i++) {
 							var prop = evalExpr(dirs.params[i].value, data, context, {thisElem: node}, debugInfo);
-							bindParam(newContext, dirs.params[i].name, prop, bindingStore, depth);
+							bindParam(newContext, dirs.params[i].name, prop, bindingStore, depth + 1);
 						}
 					data = context = newContext;
 					debugInfo = debugInfo.concat(viewName);
 					if (api.onDataBinding) api.onDataBinding(node);
 					dirs = getDirectives(node);
+					depth += 2
 				}
 				removeDirectives(node, dirs);
 				var extendedData = null;
@@ -775,7 +776,7 @@
 				if (extendedData) data = extendedData;
 				for (var i=0; i<dirs.statements.length; i++) {
 						var prop = evalExpr(dirs.statements[i].value, data, context, {thisElem: node}, debugInfo);
-						var binding = new Binding(prop, depth * 2 + 1);
+						var binding = new Binding(prop, depth + 1);
 						binding.onChange = prop.get;
 						binding.bind();
 						bindingStore.bindings.push(binding);
@@ -789,7 +790,7 @@
 				while (child) {
 					var nextSibling = child.nextSibling;
 					if (child.nodeType == 1 || child.nodeType == 3 && child.nodeValue.indexOf(prefix) != -1) {
-						dataBind(child, data, context, bindingStore, debugInfo, depth + 1);
+						dataBind(child, data, context, bindingStore, debugInfo, depth + 2);
 					}
 					child = nextSibling;
 				}
@@ -798,7 +799,7 @@
 		else if (node.nodeType == 3) {
 			var prop = evalText(node.nodeValue, data, context, {thisElem: node}, debugInfo);
 			if (prop) {
-				var binding = new Binding(prop, depth * 2 + 1);
+				var binding = new Binding(prop, depth);
 				binding.onChange = function() {
 					var textarea = document.createElement("textarea");
 					textarea.innerHTML = prop.get();
@@ -812,7 +813,7 @@
 
 	function bindParam(data, paramName, prop, bindingStore, depth) {
 		if (prop.isExpr) {
-			var binding = new Binding(prop, depth * 2);
+			var binding = new Binding(prop, depth);
 			binding.onChange = function() {data[paramName] = prop.get()};
 			binding.bind();
 			bindingStore.bindings.push(binding);
