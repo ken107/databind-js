@@ -761,7 +761,14 @@
 				removeDirectives(node, dirs);
 				const repeater = makeRepeater(dirs.repeater.name, node, data, context, debugInfo, depth + 1)
 				let expr
-				if (dirs.repeater.view && !api.views[dirs.repeater.view]) {
+				if (dirs.repeater.view
+					&& !(context.slots && context.slots[dirs.repeater.view])
+					&& !api.views[dirs.repeater.view]
+				) {
+					if (/^\d/.test(dirs.repeater.view)) {
+						printDebug(debugInfo)
+						throw new Error('Missing slot ' + dirs.repeater.view)
+					}
 					unreadyViews.add(dirs.repeater.view)
 					const name = randomString()
 					setProp(data, name, getProp(api.views, dirs.repeater.view))
@@ -777,16 +784,22 @@
 			else {
 				while (dirs.view) {
 					const viewName = dirs.view
-					if (!api.views[viewName]) {
+					const view = context.slots && context.slots[viewName] || api.views[viewName]
+					if (!view) {
+						if (/^\d/.test(viewName)) {
+							printDebug(debugInfo)
+							throw new Error('Missing slot ' + viewName)
+						}
 						unreadyViews.add(viewName)
 						const repeater = makeRepeater(null, node, data, context, debugInfo, depth + 1)
-						const prop = evalExpr("#views['" + viewName + "']", api, null, {}, debugInfo)
+						const prop = getProp(api.views, viewName)
 						const binding = makeBinding(prop, depth, () => repeater.update(prop.get() ? 1 : 0), () => repeater.update(0))
 						binding.bind();
 						bindingStore.add(binding)
 						return;
 					}
-					const newNode = api.views[viewName].template.cloneNode(true)
+					const slots = [...node.children].map(child => ({template: child, controller: noOp}))
+					const newNode = view.template.cloneNode(true)
 					if (node.className) {
 						newNode.className = newNode.className ? (newNode.className + " " + node.className) : node.className
 					}
@@ -821,7 +834,8 @@
 						const prop = evalExpr(value, data, context, scope, debugInfo)
 						makeEventHandler(node, name, scope, prop)
 					}
-					const newContext = new api.views[viewName].controller(node)
+					const newContext = new view.controller(node)
+					newContext.slots = slots
 					for (const {name, value} of dirs.params) {
 						const prop = evalExpr(value, data, context, {thisElem: node}, debugInfo)
 						bindParam(newContext, name, prop, bindingStore, depth + 1)
