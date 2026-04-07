@@ -244,11 +244,14 @@
 			for (const subscriber of subscribers.values()) subscriber()
 		};
 		if (typeof rxjs != 'undefined') {
-			this.value$ = rxjs.fromEventPattern(
-				h => this.subscribe(() => h(this.get())),
-				(h, k) => this.unsubscribe(k)
-			).pipe(
-				rxjs.startWith(this.get())
+			this.value$ = rxjs.concat(
+				rxjs.defer(() =>
+					rxjs.of(this.get())
+				),
+				rxjs.fromEventPattern(
+					h => this.subscribe(() => h(this.get())),
+					(h, k) => this.unsubscribe(k)
+				)
 			)
 		}
 	}
