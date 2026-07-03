@@ -419,7 +419,7 @@
 			}
 		});
 		const isSinglePart = regex.singlePart.test(expr)
-		if (!regex.nonExpr.test(expr)) expr = "return " + expr
+		if (!regex.nonExpr.test(expr)) expr = "return " + expr.trimStart()
 		expr = "const thisElem = scope.thisElem, event = scope.event;\n" + expr;
 		let func
 		try {
