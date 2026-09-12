@@ -934,6 +934,25 @@
 		},
 
 		/**
+		 * Observe a binding expression and invoke a callback with its settled value.
+		 * The initial callback is synchronous; subsequent changes are deferred and
+		 * coalesced using the same update cycle as binding directives.
+		 * @param {string} str A binding expression
+		 * @param {object} data Binding sources
+		 * @param {function} callback Invoked with the expression's current value
+		 * @param {object} context Value of `this`
+		 * @param {object} scope Local variables
+		 * @param {array} debugInfo Debug info to accompany error messages
+		 * @returns A binding with `bind()`, `unbind()`, and `isBound()` methods
+		 */
+		effect(str, data, callback, context = {}, scope = {}, debugInfo = []) {
+			const prop = evalExpr(str, data, context, scope, debugInfo)
+			const binding = makeBinding(prop, 0, () => callback(prop.get()))
+			binding.bind()
+			return binding
+		},
+
+		/**
 		 * Process a string containing zero or more binding expressions enclosed in double brackets,
 		 * return a _proxy_ representing its interpolated value
 		 * @param {string} str String containing binding expressions
